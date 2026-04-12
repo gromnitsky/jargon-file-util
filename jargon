@@ -17,7 +17,7 @@ def full_text_match pattern, glossentry
    glossentry.at_css('glossdef').text].join("\n").downcase =~ pattern
 end
 
-def term_print glossentry, _dummy
+def term_print glossentry, _dummy1, _dummy2
   puts glossentry.at_css('glossterm').text
 end
 
