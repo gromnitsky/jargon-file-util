@@ -2,26 +2,10 @@
 
 require 'nokogiri'
 
-abort "Usage: jargon pattern [fim]\n
-  f       search inside defs too
-  i       print terms only
-  mNUM    stop after NUM matches" if ARGV.length < 1
-
 def find_file name
   [__dir__, '/usr/share/jargon', '/usr/local/share/jargon']
     .map {|v| File.join v, name}.find {|v| File.readable? v }
 end
-
-$conf = {
-  mode: {
-    indices: ARGV[1] =~ /i/,
-    full_text: ARGV[1] =~ /f/,
-  },
-  limit: (ARGV[1] =~ /m([0-9]+)/ && $1.to_i) || Float::INFINITY,
-  word_wrap: 76
-}
-
-$pattern = Regexp.new ARGV[0], 'i'
 
 def term_match pattern, glossentry
   glossentry.at_css('glossterm').text.downcase =~ pattern
@@ -36,7 +20,7 @@ def term_print glossentry
   puts glossentry.at_css('glossterm').text
 end
 
-def entry_print glossentry
+def entry_print glossentry, word_wrap
   pronunciation = glossentry.at_css('abbrev [role="pronunciation"]')&.text
   grammar = glossentry.at_css('abbrev [role="grammar"]')&.text
   puts ':' + glossentry.at_css('glossterm').text + ': ' +
@@ -49,7 +33,7 @@ def entry_print glossentry
     node.add_class 'glossdef'
     html = node.to_html
     p html if $VERBOSE
-    puts html_to_text(html)
+    puts html_to_text(html, word_wrap)
   end
   puts
 end
@@ -110,7 +94,7 @@ end
 def glossentry_to_html glossentry
   {
     'informaltable'  => 'table',
-    'tgroup'         => nil,      # unwrap (remove but keep children)
+    'tgroup'         => nil,    # unwrap (remove but keep children)
     'row'            => 'tr',
     'entry'          => 'td',
 
@@ -144,10 +128,10 @@ def glossentry_to_html glossentry
   end
 end
 
-def html_to_text html
+def html_to_text html, word_wrap
   IO.popen([
              'w3m', '-T', 'text/html', '-dump', '-I', 'UTF-8',
-             '-O', 'UTF-8', '-cols', $conf[:word_wrap].to_s,
+             '-O', 'UTF-8', '-cols', word_wrap.to_s,
              '-o', 'display_link_number=1', '-o', 'display_borders=1',
            ], 'w+') do |pipe|
     pipe.write html
@@ -158,29 +142,42 @@ end
 
 
 
-# dnf install docbook-dtds
-ENV['XML_CATALOG_FILES'] = find_file('jargon.catalog.xml')
-ENV['XML_DEBUG_CATALOG'] = '1' if $VERBOSE
+def main
+  abort "Usage: jargon pattern [fim]\n
+  f       search inside defs too
+  i       print terms only
+  mNUM    stop after NUM matches" if ARGV.length < 1
 
-doc = Nokogiri::XML(File.read find_file('jargon.xml')) {|o| o.dtdload.noent }
+  pattern = Regexp.new(ARGV[0], 'i') rescue abort("invalid pattern: #{$!}")
 
-if $VERBOSE
-  doc.errors.each do |error|
-    puts "libxml2 error: #{error.message}"
+  opt = {
+    mode_indices: ARGV[1] =~ /i/,
+    mode_full_text: ARGV[1] =~ /f/,
+    limit: (ARGV[1] =~ /m([0-9]+)/ && $1.to_i) || Float::INFINITY,
+    word_wrap: ENV['MANWIDTH']&.to_i
+  }
+  opt[:word_wrap] = 76 if opt[:word_wrap] <= 0
+
+  ENV['XML_CATALOG_FILES'] = find_file('jargon.catalog.xml')
+  ENV['XML_DEBUG_CATALOG'] = '1' if $VERBOSE
+
+  doc = Nokogiri::XML(File.read find_file('jargon.xml')) {|o| o.dtdload.noent }
+  doc.errors.each { |error| puts "libxml2 error: #{error.message}" } if $VERBOSE
+
+  grep = opt[:mode_full_text] ? :full_text_match : :term_match
+  print = opt[:mode_indices] ? :term_print : :entry_print
+
+  status = 1
+  doc.css('glossentry').each do |glossentry|
+    if send(grep, pattern, glossentry)
+      opt[:limit] -= 1
+      send(print, glossentry, opt[:word_wrap])
+      status = 0
+      break if opt[:limit] == 0
+    end
   end
+
+  exit status
 end
 
-grep = $conf[:mode][:full_text] ? :full_text_match : :term_match
-print = $conf[:mode][:indices] ? :term_print : :entry_print
-
-status = 1
-doc.css('glossentry').each do |glossentry|
-  if send(grep, $pattern, glossentry)
-    $conf[:limit] -= 1
-    send(print, glossentry)
-    status = 0
-    break if $conf[:limit] == 0
-  end
-end
-
-exit status
+main if __FILE__ == $0
