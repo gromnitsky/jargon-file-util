@@ -2,9 +2,10 @@
 
 require 'nokogiri'
 
-abort "Usage: jargon pattern [fi]\n
-         f    search inside defs too
-         i    print terms only" if ARGV.length < 1
+abort "Usage: jargon pattern [fim]\n
+  f       search inside defs too
+  i       print terms only
+  mNUM    stop after NUM matches" if ARGV.length < 1
 
 def find_file name
   [__dir__, '/usr/share/jargon', '/usr/local/share/jargon']
@@ -16,6 +17,7 @@ $conf = {
     indices: ARGV[1] =~ /i/,
     full_text: ARGV[1] =~ /f/,
   },
+  limit: (ARGV[1] =~ /m([0-9]+)/ && $1.to_i) || Float::INFINITY,
   word_wrap: 76
 }
 
@@ -100,6 +102,11 @@ def xref_to_text node           # jarg-specifig
   node.name = 'span'
 end
 
+def quote_to_text node
+  node.content = "\"#{node.text}\""
+  node.name = 'cite'
+end
+
 def glossentry_to_html glossentry
   {
     'informaltable'  => 'table',
@@ -110,19 +117,18 @@ def glossentry_to_html glossentry
     'para'           => 'p',
     'programlisting' => 'pre',
     'screen'         => 'pre',
-    'literallayout' => 'pre',
-    'emphasis'       => 'i',
+    'literallayout'  => 'pre',
+    'emphasis'       => 'em',
     'ulink'          => :ulink_to_a,
     'glossterm'      => :glossterm_to_text,
     'mediaobject'    => :mediaobject_to_img,
     'citerefentry'   => :citerefentry_to_text,
-    'xref' => :xref_to_text,
-    'quote' => 'cite',
+    'xref'           => :xref_to_text,
+    'quote'          => :quote_to_text,
 
     'itemizedlist'   => 'ul',
     'orderedlist'    => 'ol',
     'listitem'       => 'li',
-
   }.each do |from, to|
     glossentry.css(from).each do |node|
       if to
@@ -170,8 +176,10 @@ print = $conf[:mode][:indices] ? :term_print : :entry_print
 status = 1
 doc.css('glossentry').each do |glossentry|
   if send(grep, $pattern, glossentry)
+    $conf[:limit] -= 1
     send(print, glossentry)
     status = 0
+    break if $conf[:limit] == 0
   end
 end
 
