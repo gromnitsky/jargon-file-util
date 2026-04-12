@@ -25085,9 +25085,7 @@ logic or problem!  </para></blockquote>
    <glossterm>flame war</glossterm>s.</para>
 
    <para>Hundreds of emoticons have been proposed, but only a few are in
-   common use.  These include:</para>
-
-   <informaltable> <tgroup cols='2'> <tbody>
+   common use.  These include: <informaltable> <tgroup cols='2'> <tbody>
    <row><entry>:-)</entry><entry>&lsquo;smiley face&rsquo; (for humor,
    laughter, friendliness, occasionally sarcasm)</entry></row>
    <row><entry>:-(</entry><entry>&lsquo;frowney face&rsquo; (for sadness,
@@ -25097,9 +25095,7 @@ logic or problem!  </para></blockquote>
    role='firstterm'>semi-smiley</emphasis> or <emphasis
    role='firstterm'>winkey face</emphasis>.</entry></row>
    <row><entry>:-/</entry><entry>&lsquo;wry face&rsquo;</entry></row> </tbody>
-   </tgroup> </informaltable>
-
-   <para>(These may become more comprehensible if you
+   </tgroup> </informaltable> (These may become more comprehensible if you
    tilt your head sideways, to the left.)  The first two listed are by far the
    most frequently encountered.  Hyphenless forms of them are common on
    CompuServe, GEnie, and BIX; see also <glossterm>bixie</glossterm>.  On
@@ -53619,15 +53615,11 @@ time.</para>
    <para>Scrolling .plan files have become art forms in miniature, and some
    sites have started competitions to find who can create the longest running,
    funniest, and most original animations.  Various animation characters
-   include:</para>
-
-   <informaltable> <tgroup cols='2'> <tbody>
+   include: <informaltable> <tgroup cols='2'> <tbody>
    <row><entry>Centipede:</entry><entry>mmmmme</entry></row>
    <row><entry>Lorry/Truck:</entry><entry>oo-oP</entry></row>
    <row><entry>Andalusian Video Snail:</entry><entry>_@/</entry></row>
-   </tbody> </tgroup> </informaltable>
-
-   <para>and a compiler (ASP) is available on
+   </tbody> </tgroup> </informaltable> and a compiler (ASP) is available on
    Usenet for producing them.  See also 
    <glossterm>twirling baton</glossterm>.</para>
 <!-- from Alec D E Muffett <aem@aberystwyth.ac.uk>, 30 Jul 1992 -->

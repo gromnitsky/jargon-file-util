@@ -41,10 +41,10 @@ def entry_print glossentry
        [pronunciation, grammar].filter {|v| v}.join(', ')
   puts
 
-  n = 0
   glossentry.css('glossdef').each do |node|
-    n += 1
     glossentry_to_html node     # in-place
+    node.name = 'div'
+    node.add_class 'glossdef'
     html = node.to_html
     p html if $VERBOSE
     puts html_to_text(html)
@@ -100,7 +100,7 @@ def xref_to_text node           # jarg-specifig
   node.name = 'span'
 end
 
-def glossentry_to_html doc
+def glossentry_to_html glossentry
   {
     'informaltable'  => 'table',
     'tgroup'         => nil,      # unwrap (remove but keep children)
@@ -124,7 +124,7 @@ def glossentry_to_html doc
     'listitem'       => 'li',
 
   }.each do |from, to|
-    doc.css(from).each do |node|
+    glossentry.css(from).each do |node|
       if to
         if to.is_a?(Symbol)
           method(to).call(node) # transform in-place
