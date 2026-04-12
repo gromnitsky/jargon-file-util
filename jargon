@@ -16,26 +16,65 @@ def full_text_match pattern, glossentry
    glossentry.at_css('glossdef').text].join("\n").downcase =~ pattern
 end
 
-def term_print glossentry
+def term_print glossentry, _dummy
   puts glossentry.at_css('glossterm').text
 end
 
-def entry_print glossentry, word_wrap
-  pronunciation = glossentry.at_css('abbrev [role="pronunciation"]')&.text
-  grammar = glossentry.at_css('abbrev [role="grammar"]')&.text
-  puts ':' + glossentry.at_css('glossterm').text + ': ' +
-       [pronunciation, grammar].filter {|v| v}.join(', ')
-  puts
+class Glossentry
+  def initialize node, opt
+    @opt = opt
+    @term = term_parse node
+    raise "invalid glossentry: no <glossterm>" unless @term[:term]
 
-  glossentry.css('glossdef').each do |node|
-    glossentry_to_html node     # in-place
-    node.name = 'div'
-    node.add_class 'glossdef'
-    html = node.to_html
-    p html if $VERBOSE
-    puts html_to_text(html, word_wrap)
+    @defs = node.css('glossdef').map do |d|
+      glossentry_to_html d      # in-place
+      d.name = 'div'
+      d.add_class 'glossdef'
+    end
   end
-  puts
+
+  def print
+    puts ':' + @term[:term] + ': ' + [@term[:pronunciation], @term[:grammar]]
+                                       .filter {|v| v}.join(', ')
+    puts
+
+    @defs.each do |d|
+      html = d.to_html
+      puts html_to_text(html, @opt[:word_wrap])
+    end
+    puts
+  end
+
+  def term_parse node
+    {
+      term: node.at_css('glossterm').text,
+      pronunciation: node.at_css('abbrev [role="pronunciation"]')&.text,
+      grammar: node.at_css('abbrev [role="grammar"]')&.text,
+    }
+  end
+end
+
+class GlossentryHTML < Glossentry
+  def print
+    builder = Nokogiri::HTML5::Builder.new do |h|
+      h.div(class: 'glossterm') {
+        h.span(@term[:term], class: 'glossterm__term')
+        h.span(@term[:pronunciation], class: 'glossterm__pronunciation') if @term[:pronunciation]
+        h.span(@term[:grammar], class: 'glossterm__grammar') if @term[:grammar]
+      }
+    end
+    puts builder.doc.root.to_html
+    puts
+
+    @defs.each { |d| puts d.to_html }
+    puts
+  end
+end
+
+def entry_print glossentry, opt
+  klass = opt[:mode_html] ? GlossentryHTML : Glossentry
+  ge = klass.new glossentry, opt
+  ge.print
 end
 
 
@@ -43,7 +82,7 @@ end
 def glossterm_to_text node
   node.content = "{#{node.text}}"
   node.name = 'span'
-  node.add_class 'glossterm'
+  node.add_class 'glossterm_link'
 end
 
 def ulink_to_a node
@@ -57,7 +96,7 @@ def mediaobject_to_img node
   desc = node.at_css('caption')&.text&.strip
 
   if imagedata
-    div = Nokogiri::XML::Node.new("div", node.parent)
+    div = Nokogiri::XML::Node.new("div", Nokogiri::XML::Document.new)
     if desc
       div.content = "(#{desc})"
       div.prepend_child "<br/>"
@@ -153,6 +192,7 @@ def main
   opt = {
     mode_indices: ARGV[1] =~ /i/,
     mode_full_text: ARGV[1] =~ /f/,
+    mode_html: ARGV[1] =~ /h/,
     limit: (ARGV[1] =~ /m([0-9]+)/ && $1.to_i) || Float::INFINITY,
     word_wrap: ENV['MANWIDTH']&.to_i
   }
@@ -171,7 +211,7 @@ def main
   doc.css('glossentry').each do |glossentry|
     if send(grep, pattern, glossentry)
       opt[:limit] -= 1
-      send(print, glossentry, opt[:word_wrap])
+      send(print, glossentry, opt)
       status = 0
       break if opt[:limit] == 0
     end
