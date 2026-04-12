@@ -22,10 +22,12 @@ def term_print glossentry, _dummy
 end
 
 class Glossentry
-  def initialize node, opt
+  def initialize node, idx, opt
     @opt = opt
     @term = term_parse node
     raise "invalid glossentry: no <glossterm>" unless @term[:term]
+
+    @id = 'ge_' + @term[:term].strip.gsub(/[^A-Za-z0-9_-]+/, '_') + "_#{idx}"
 
     @defs = node.css('glossdef').map do |d|
       glossentry_to_html d      # in-place
@@ -48,7 +50,7 @@ class Glossentry
 
   def term_parse node
     {
-      term: node.at_css('glossterm').text,
+      term: node.at_css('glossterm')&.text,
       pronunciation: node.at_css('abbrev [role="pronunciation"]')&.text,
       grammar: node.at_css('abbrev [role="grammar"]')&.text,
     }
@@ -58,7 +60,7 @@ end
 class GlossentryHTML < Glossentry
   def print
     builder = Nokogiri::HTML5::Builder.new do |h|
-      h.div(class: 'glossterm') {
+      h.div(class: 'glossterm', id: @id) {
         h.span(@term[:term], class: 'glossterm__term')
         h.span(@term[:pronunciation], class: 'glossterm__pronunciation') if @term[:pronunciation]
         h.span(@term[:grammar], class: 'glossterm__grammar') if @term[:grammar]
@@ -72,9 +74,9 @@ class GlossentryHTML < Glossentry
   end
 end
 
-def entry_print glossentry, opt
+def entry_print glossentry, idx, opt
   klass = opt[:mode_html] ? GlossentryHTML : Glossentry
-  ge = klass.new glossentry, opt
+  ge = klass.new glossentry, idx, opt
   ge.print
 end
 
@@ -211,10 +213,10 @@ def main
   print = opt[:mode_indices] ? :term_print : :entry_print
 
   status = 1
-  doc.css('glossentry').each do |glossentry|
+  doc.css('glossentry').each_with_index do |glossentry, idx|
     if send(grep, pattern, glossentry)
       opt[:limit] -= 1
-      send(print, glossentry, opt)
+      send(print, glossentry, idx, opt)
       status = 0
       break if opt[:limit] == 0
     end
