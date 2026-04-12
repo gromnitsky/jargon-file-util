@@ -34,128 +34,123 @@ def term_print glossentry
   puts glossentry.at_css('glossterm').text
 end
 
-# from rails' actionview
-def word_wrap(text, line_width: 76, break_sequence: "\n")
-  return +"" if text.empty?
-  pattern = /(.{1,#{line_width}})(?:[^\S\n]+\n?|\n*\Z|\n)|\n/
-  text.gsub(pattern, "\\1#{break_sequence}").chomp!(break_sequence)
-end
-
-# in-place
-def docbook_table_to_html_table t
-  t.name = 'table'
-  t['border'] = '1'
-  t.css('tgroup').each { |v| v.replace(v.children) } # unwrap
-  t.css('row').each { |v| v.name = 'tr' }
-  t.css('entry').each { |v| v.name = 'td' }
-  t
-end
-
-# in-place
-def docbook_list_to_html_list t
-  t.name = t.name == 'itemizedlist' ? 'ul' : 'ol'
-  t.css('listitem').each { |v| v.name = 'li' }
-  t
-end
-
-def html_to_text t
-  IO.popen(['w3m', '-T', 'text/html', '-dump', '-I', 'UTF-8',
-            '-O', 'UTF-8', '-cols', $conf[:word_wrap].to_s], 'w+') do |pipe|
-    pipe.write t.to_html
-    pipe.close_write
-    pipe.read
-  end
-end
-
-# TODO: render <subscript>
 def entry_print glossentry
   pronunciation = glossentry.at_css('abbrev [role="pronunciation"]')&.text
   grammar = glossentry.at_css('abbrev [role="grammar"]')&.text
   puts ':' + glossentry.at_css('glossterm').text + ': ' +
        [pronunciation, grammar].filter {|v| v}.join(', ')
+  puts
 
-  maybe_wrap_in_newlines = lambda do |s|
-    n1 = s[0] == "\n" ? "" : "\n"
-    n1 + s.rstrip + "\n"
-  end
-
-  fmt = lambda do |s, w = $conf[:word_wrap]|
-    word_wrap(s.gsub(/\s+/, ' ').strip, line_width: w)
-  end
-
-  render = lambda do |node, parent|
-    w3m = lambda do |node, tag_to_prerender, transform_fn|
-      node.css(tag_to_prerender).each do |v| # FIXME: html escape
-        v.content = v.children.map { |child| render.call(child, v) }.join
-      end
-      method(transform_fn).call(node)
-      maybe_wrap_in_newlines.call(html_to_text(node))
-    end
-
-    case node
-    when Nokogiri::XML::Text
-      if parent&.name == 'glossdef'
-        node.text.strip
-      else
-        node.text
-      end
-    when Nokogiri::XML::Element
-      inner = node.children.map { |child| render.call(child, node) }.join
-
-      case node.name
-      when "para"
-        "\n" + fmt.call(inner) + "\n"
-      when "blockquote"
-        lines = fmt.call(inner, $conf[:word_wrap]-2)
-                  .split("\n").map{ |v| "  #{v}" }.join("\n")
-        "\n" + lines + "\n"
-      when /programlisting|screen/
-       maybe_wrap_in_newlines.call(inner)
-      when "glossterm"
-        "{#{inner}}"
-      when "emphasis"           # 'fraktur' is jarg-specific
-        node['role'] == 'fraktur' ? inner : "_#{inner}_"
-      when "quote"
-        "'#{inner}'"
-      when "ulink"
-        "<#{node['url']}>#{node.text ? ' '+node.text.strip : ''}"
-      when "mediaobject"
-        # TODO: sixel or stefanhaustein/TerminalImageViewer?
-        img = node.at_css('imagedata')
-        alt = node.at_css('caption')&.text&.strip
-        if img
-          "\n" + ["[#{img['fileref']}]",
-                  alt ? fmt.call("(#{alt})") : nil]
-                   .filter {|v| v}.join("\n") + "\n"
-        else
-          ""
-        end
-      when "citerefentry"
-        title = node.at_css('refentrytitle')&.text
-        section = node.at_css('manvolnum')&.text
-        title ? "#{title}(#{section})" : ""
-      when "figure"             # jarg-specific
-        "\n\n#{inner.strip}\n\n"
-      when "xref"               # jarg-specific
-        "[#{node["linkend"]}]"
-      when "informaltable"
-        w3m.call(node, 'entry', :docbook_table_to_html_table)
-      when /itemizedlist|orderedlist/
-        w3m.call(node, 'listitem', :docbook_list_to_html_list)
-      else
-        inner
-      end
-    else
-      ""
-    end
-  end
-
+  n = 0
   glossentry.css('glossdef').each do |node|
-    puts
-    puts render.call(node, nil).strip
+    n += 1
+    glossentry_to_html node     # in-place
+    html = node.to_html
+    p html if $VERBOSE
+    puts html_to_text(html)
   end
   puts
 end
+
+
+
+def glossterm_to_text node
+  node.content = "{#{node.text}}"
+  node.name = 'span'
+  node.add_class 'glossterm'
+end
+
+def ulink_to_a node
+  node.name = 'a'
+  node['href'] = node['url']
+  node.remove_attribute('url')
+end
+
+def mediaobject_to_img node
+  imagedata = node.at_css('imagedata')
+  desc = node.at_css('caption')&.text&.strip
+
+  if imagedata
+    div = Nokogiri::XML::Node.new("div", node.parent)
+    if desc
+      div.content = "(#{desc})"
+      div.prepend_child "<br/>"
+    end
+
+    img = Nokogiri::XML::Node.new("img", div)
+    img['src'] = node.at_css('imagedata')['fileref']
+    div.prepend_child img
+
+    node.swap(div)
+  end
+end
+
+def citerefentry_to_text node
+  title = node.at_css('refentrytitle')&.text
+  section = node.at_css('manvolnum')&.text
+  if title
+    node.content = "#{title}(#{section})"
+    node.name = 'span'
+    node.add_class 'citerefentry'
+  end
+end
+
+def xref_to_text node           # jarg-specifig
+  node.content = "[#{node['linkend']}]"
+  node.name = 'span'
+end
+
+def glossentry_to_html doc
+  {
+    'informaltable'  => 'table',
+    'tgroup'         => nil,      # unwrap (remove but keep children)
+    'row'            => 'tr',
+    'entry'          => 'td',
+
+    'para'           => 'p',
+    'programlisting' => 'pre',
+    'screen'         => 'pre',
+    'literallayout' => 'pre',
+    'emphasis'       => 'i',
+    'ulink'          => :ulink_to_a,
+    'glossterm'      => :glossterm_to_text,
+    'mediaobject'    => :mediaobject_to_img,
+    'citerefentry'   => :citerefentry_to_text,
+    'xref' => :xref_to_text,
+    'quote' => 'cite',
+
+    'itemizedlist'   => 'ul',
+    'orderedlist'    => 'ol',
+    'listitem'       => 'li',
+
+  }.each do |from, to|
+    doc.css(from).each do |node|
+      if to
+        if to.is_a?(Symbol)
+          method(to).call(node) # transform in-place
+        else
+          node.name = to
+        end
+      else
+        node.replace(node.children) # unwrap
+      end
+    end
+  end
+end
+
+def html_to_text html
+  IO.popen([
+             'w3m', '-T', 'text/html', '-dump', '-I', 'UTF-8',
+             '-O', 'UTF-8', '-cols', $conf[:word_wrap].to_s,
+             '-o', 'display_link_number=1', '-o', 'display_borders=1',
+           ], 'w+') do |pipe|
+    pipe.write html
+    pipe.close_write
+    pipe.read
+  end
+end
+
+
 
 # dnf install docbook-dtds
 ENV['XML_CATALOG_FILES'] = find_file('jargon.catalog.xml')
