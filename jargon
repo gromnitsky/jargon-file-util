@@ -17,8 +17,8 @@ def full_text_match pattern, glossentry
    glossentry.at_css('glossdef').text].join("\n").downcase =~ pattern
 end
 
-def term_print glossentry, _dummy1, _dummy2
-  puts glossentry.at_css('glossterm').text
+def term_fmt glossentry, _dummy1, _dummy2
+  glossentry.at_css('glossterm').text
 end
 
 class Glossentry
@@ -36,16 +36,15 @@ class Glossentry
     end
   end
 
-  def print
-    puts ':' + @term[:term] + ': ' + [@term[:pronunciation], @term[:grammar]]
-                                       .filter {|v| v}.join(', ')
-    puts
-
-    @defs.each do |d|
-      html = d.to_html
-      puts html_to_text(html, @opt[:word_wrap])
-    end
-    puts
+  def fmt
+    [
+      ':' + @term[:term] + ': ' + [@term[:pronunciation], @term[:grammar]]
+                                    .filter {|v| v}.join(', '),
+      @defs.map do |d|
+        html = d.to_html
+        html_to_text(html, @opt[:word_wrap]).rstrip
+      end,
+    ].flatten.join("\n\n")
   end
 
   def term_parse node
@@ -58,29 +57,31 @@ class Glossentry
 end
 
 class GlossentryHTML < Glossentry
-  def print
-    puts "<div class='glossentry' id='#{@id}'>"
-
-    builder = Nokogiri::HTML5::Builder.new do |h|
-      h.div(class: 'glossterm') {
-        h.span(@term[:term], class: 'glossterm__term')
-        h.span(@term[:pronunciation], class: 'glossterm__pronunciation') if @term[:pronunciation]
-        h.span(@term[:grammar], class: 'glossterm__grammar') if @term[:grammar]
-      }
+  def fmt
+    glossterm = lambda do
+      builder = Nokogiri::HTML5::Builder.new do |h|
+        h.div(class: 'glossterm') {
+          h.span(@term[:term], class: 'glossterm__term')
+          h.span(@term[:pronunciation], class: 'glossterm__pronunciation') if @term[:pronunciation]
+          h.span(@term[:grammar], class: 'glossterm__grammar') if @term[:grammar]
+        }
+      end
+      builder.doc.root.to_html
     end
-    puts builder.doc.root.to_html
-    puts
 
-    @defs.each { |d| puts d.to_html }
-
-    puts "</div>\n\n"
+    [
+      "<div class='glossentry' id='#{@id}'>",
+      glossterm.call,
+      @defs.map { |d| d.to_html },
+      "</div>"
+    ].flatten.join("\n")
   end
 end
 
-def entry_print glossentry, idx, opt
+def entry_fmt glossentry, idx, opt
   klass = opt[:mode_html] ? GlossentryHTML : Glossentry
   ge = klass.new glossentry, idx, opt
-  ge.print
+  ge.fmt + "\n\n"
 end
 
 
@@ -213,13 +214,13 @@ def main
   doc.errors.each { |error| puts "libxml2 error: #{error.message}" } if $VERBOSE
 
   grep = opt[:mode_full_text] ? :full_text_match : :term_match
-  print = opt[:mode_indices] ? :term_print : :entry_print
+  fmt = opt[:mode_indices] ? :term_fmt : :entry_fmt
 
   status = 1
   doc.css('glossentry').each_with_index do |glossentry, idx|
     if send(grep, pattern, glossentry)
       opt[:limit] -= 1
-      send(print, glossentry, idx, opt)
+      puts send(fmt, glossentry, idx, opt)
       status = 0
       break if opt[:limit] == 0
     end
