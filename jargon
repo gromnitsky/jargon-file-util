@@ -59,8 +59,10 @@ end
 
 class GlossentryHTML < Glossentry
   def print
+    puts "<div class='glossentry' id='#{@id}'>"
+
     builder = Nokogiri::HTML5::Builder.new do |h|
-      h.div(class: 'glossterm', id: @id) {
+      h.div(class: 'glossterm') {
         h.span(@term[:term], class: 'glossterm__term')
         h.span(@term[:pronunciation], class: 'glossterm__pronunciation') if @term[:pronunciation]
         h.span(@term[:grammar], class: 'glossterm__grammar') if @term[:grammar]
@@ -70,7 +72,8 @@ class GlossentryHTML < Glossentry
     puts
 
     @defs.each { |d| puts d.to_html }
-    puts
+
+    puts "</div>\n\n"
   end
 end
 
