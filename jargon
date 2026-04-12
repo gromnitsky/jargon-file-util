@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'io/console'
 require 'nokogiri'
 
 def find_file name
@@ -187,7 +188,7 @@ def main
   i       print terms only
   mNUM    stop after NUM matches" if ARGV.length < 1
 
-  pattern = Regexp.new(ARGV[0], 'i') rescue abort("invalid pattern: #{$!}")
+  pattern = Regexp.new(ARGV[0], 'i', timeout: 1) rescue abort("invalid pattern: #{$!}")
 
   opt = {
     mode_indices: ARGV[1] =~ /i/,
@@ -197,6 +198,8 @@ def main
     word_wrap: ENV['MANWIDTH']&.to_i
   }
   opt[:word_wrap] = 76 if opt[:word_wrap] <= 0
+  cols = IO.console.winsize[1]
+  opt[:word_wrap] = cols if cols < opt[:word_wrap]
 
   ENV['XML_CATALOG_FILES'] = find_file('jargon.catalog.xml')
   ENV['XML_DEBUG_CATALOG'] = '1' if $VERBOSE
@@ -220,4 +223,4 @@ def main
   exit status
 end
 
-main if __FILE__ == $0
+main unless defined?(Minitest) || defined?(Test)
