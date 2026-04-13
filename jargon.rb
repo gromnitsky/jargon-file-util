@@ -188,6 +188,8 @@ end
 
 
 
+def sigint_handler; proc {|s| exit 128+s }; end
+
 def main
   abort "Usage: jargon pattern [fim]\n
   f       search inside defs too
@@ -206,6 +208,9 @@ def main
   opt[:word_wrap] = 76 if opt[:word_wrap] <= 0
   cols = IO.console.winsize[1]
   opt[:word_wrap] = cols if cols < opt[:word_wrap]
+
+  Signal.trap 'SIGINT', sigint_handler
+  Signal.trap 'SIGPIPE', sigint_handler
 
   ENV['XML_CATALOG_FILES'] = find_file('jargon.catalog.xml')
   ENV['XML_DEBUG_CATALOG'] = '1' if $VERBOSE
