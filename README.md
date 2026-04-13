@@ -2,11 +2,12 @@
 
 ~~~
 $ jargon
-Usage: jargon pattern [fim]
+Usage: jargon pattern [fimh]
 
   f       search inside defs too
   i       print terms only
   mNUM    stop after NUM matches
+  h       html output
 ~~~
 
 List entries that contain pattern *sloppy* (match is always
@@ -34,6 +35,10 @@ See {vdiff}.
 See {vgrep}.
 ~~~
 
+Provide your own dictionary in the same format as `jargon.xml`:
+
+    $ JARGON=file.xml jargon ...
+
 ## Install
 
     # dnf install rubygem-nokogiri w3m docbook-dtds
@@ -50,8 +55,8 @@ See a note about `jargon.xml` if on Debian.
 
 1. Nokogiri converts DocBook into HTML.
 2. `w3m` converts HTML to text.
-3. `jargon.rb` prints entries, searches them, and provides Bash
-   completion.
+3. `jargon.rb` prints entries, searches them, and supplies Bash
+   completions.
 
 No XSLT or Java is used for anything.
 

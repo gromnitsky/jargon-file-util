@@ -3,11 +3,6 @@
 require 'io/console'
 require 'nokogiri'
 
-def find_file name
-  [__dir__, '/usr/share/jargon', '/usr/local/share/jargon']
-    .map {|v| File.join v, name}.find {|v| File.readable? v }
-end
-
 def term_match pattern, glossentry
   glossentry.at_css('glossterm').text.downcase =~ pattern
 end
@@ -191,12 +186,14 @@ end
 def sigint_handler; proc {|s| exit 128+s }; end
 
 def main
-  abort "Usage: jargon pattern [fim]\n
+  abort "Usage: jargon pattern [fimh]\n
   f       search inside defs too
   i       print terms only
-  mNUM    stop after NUM matches" if ARGV.length < 1
+  mNUM    stop after NUM matches
+  h       html output" if ARGV.length < 1
 
   pattern = Regexp.new(ARGV[0], 'i', timeout: 1) rescue abort("invalid pattern: #{$!}")
+  db = ENV['JARGON'] || (__dir__ + '/jargon.xml')
 
   opt = {
     mode_indices: ARGV[1] =~ /i/,
@@ -212,10 +209,10 @@ def main
   Signal.trap 'SIGINT', sigint_handler
   Signal.trap 'SIGPIPE', sigint_handler
 
-  ENV['XML_CATALOG_FILES'] = find_file('jargon.catalog.xml')
+  ENV['XML_CATALOG_FILES'] = __dir__ + '/jargon.catalog.xml'
   ENV['XML_DEBUG_CATALOG'] = '1' if $VERBOSE
 
-  doc = Nokogiri::XML(File.read find_file('jargon.xml')) {|o| o.dtdload.noent }
+  doc = Nokogiri::XML(File.read db) {|o| o.dtdload.noent }
   doc.errors.each { |error| puts "libxml2 error: #{error.message}" } if $VERBOSE
 
   grep = opt[:mode_full_text] ? :full_text_match : :term_match
