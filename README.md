@@ -1,31 +1,68 @@
-## How it works
-
-1. Nokogiri converts DocBook into HTML.
-2. `w3m` converts the HTML to text.
-3. `jargon` util prints dictionary entries, searches through them, and
-   assists Bash with completions.
-
-No XSLT or Java is used for anything.
+## Usage
 
 ~~~
-$ scc jargon | grep '^[LR]'
-Language  Files  Lines  Blanks  Comments  Code  Complexity
-Ruby      1      178    31      2         145   10
+$ jargon
+Usage: jargon pattern [fim]
+
+  f       search inside defs too
+  i       print terms only
+  mNUM    stop after NUM matches
 ~~~
 
-## Reqs
+List entries that contain pattern *sloppy* (match is always
+case-insensitive):
+
+~~~
+$ jargon sloppy fi
+blue wire
+fat electrons
+memory leak
+to a zeroth approximation
+vaxocentrism
+~~~
+
+Print all entries for *optical*:
+
+~~~
+$ jargon optical
+:optical diff: n.
+
+See {vdiff}.
+
+:optical grep: n.
+
+See {vgrep}.
+~~~
+
+## Install
 
     # dnf install rubygem-nokogiri w3m docbook-dtds
 
+1. Clone the repo.
+2. Symlink `jargon.rb` as `jargon` in your PATH.
+3. Add to `.bashrc`:
+
+        . /path/to/repo/jargon-completion.bash
+
+See a note about `jargon.xml` if on Debian.
+
+## How it works
+
+1. Nokogiri converts DocBook into HTML.
+2. `w3m` converts HTML to text.
+3. `jargon.rb` prints entries, searches them, and provides Bash
+   completion.
+
+No XSLT or Java is used for anything.
+
 ## jargon.xml
 
-This is an original, unmodified (v4.4.7, 2003-12-29) file in the
-ancient DocBook 4.1.2 format from ESR's `jargsrc.tar`.
+Original unmodified file (v4.4.7, 2003-12-29, DocBook 4.1.2 format),
+from ESR's `jargsrc.tar`.
 
-`jargon.catalog.xml` is required for parsing XML entities like
-`&ecirc;`. It depends on files from `docbook-dtds` Fedora
-package. (`docbook-xml` in Debian, but you'll need to edit `uri=`
-attribute.)
+`jargon.catalog.xml` is required to resolve entities like `&ecirc;`.
+It depends on `docbook-dtds` (Fedora). On Debian (`docbook-xml`), edit
+the `uri=` attribute.
 
 ## License
 
