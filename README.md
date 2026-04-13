@@ -62,7 +62,14 @@ from ESR's `jargsrc.tar`.
 
 `jargon.catalog.xml` is required to resolve entities like `&ecirc;`.
 It depends on `docbook-dtds` (Fedora). On Debian (`docbook-xml`), edit
-the `uri=` attribute.
+the `uri=` attribute, and run
+
+~~~
+$ jargon support | grep -o têete-à-têete
+têete-à-têete
+~~~
+
+to test.
 
 ## License
 

@@ -41,7 +41,7 @@ class Glossentry
       ':' + @term[:term] + ': ' + [@term[:pronunciation], @term[:grammar]]
                                     .filter {|v| v}.join(', '),
       @defs.map do |d|
-        html = d.to_html
+        html = d.to_html(encoding: 'utf-8')
         html_to_text(html, @opt[:word_wrap]).rstrip
       end,
     ].flatten.join("\n\n")
@@ -72,7 +72,7 @@ class GlossentryHTML < Glossentry
     [
       "<div class='glossentry' id='#{@id}'>",
       glossterm.call,
-      @defs.map { |d| d.to_html },
+      @defs.map { |d| d.to_html(encoding: 'utf-8') },
       "</div>"
     ].flatten.join("\n")
   end
