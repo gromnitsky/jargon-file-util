@@ -185,7 +185,19 @@ end
 
 def sigint_handler; proc {|s| exit 128+s }; end
 
+def os_id
+  begin
+    r = File.read('/etc/os-release').scan(/^id=(.+)/i) && $1
+    return 'debian' if r == 'ubuntu'
+    r || raise
+  rescue
+    'unknown'
+  end
+end
+
 def main
+  Encoding.default_external = 'utf-8'
+
   abort "Usage: jargon pattern [fimh]\n
   f       search inside defs too
   i       print terms only
@@ -200,7 +212,7 @@ def main
     mode_full_text: ARGV[1] =~ /f/,
     mode_html: ARGV[1] =~ /h/,
     limit: (ARGV[1] =~ /m([0-9]+)/ && $1.to_i) || Float::INFINITY,
-    word_wrap: ENV['MANWIDTH']&.to_i
+    word_wrap: ENV['MANWIDTH'].to_i
   }
   opt[:word_wrap] = 76 if opt[:word_wrap] <= 0
   cols = IO.console.winsize[1]
@@ -209,7 +221,7 @@ def main
   Signal.trap 'SIGINT', sigint_handler
   Signal.trap 'SIGPIPE', sigint_handler
 
-  ENV['XML_CATALOG_FILES'] = __dir__ + '/jargon.catalog.xml'
+  ENV['XML_CATALOG_FILES'] = __dir__ + "/jargon.catalog.#{os_id}.xml"
   ENV['XML_DEBUG_CATALOG'] = '1' if $VERBOSE
 
   doc = Nokogiri::XML(File.read db) {|o| o.dtdload.noent }
