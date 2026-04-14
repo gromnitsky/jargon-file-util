@@ -43,9 +43,10 @@ class Glossentry
   end
 
   def term_parse node
+    p = node.css('abbrev [role="pronunciation"]')&.map {|v| v.text}&.join(', ')
     {
       term: node.at_css('glossterm')&.text,
-      pronunciation: node.at_css('abbrev [role="pronunciation"]')&.text,
+      pronunciation: p.size > 0 ? p : nil,
       grammar: node.at_css('abbrev [role="grammar"]')&.text,
     }
   end
