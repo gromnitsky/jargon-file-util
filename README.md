@@ -35,13 +35,23 @@ See {vdiff}.
 See {vgrep}.
 ~~~
 
+Make a text version of the whole dictionary, akin to `jarg447.txt`:
+
+    $ jargon . > lol.txt
+
 Provide your own dictionary in the same format as `jargon.xml`:
 
     $ JARGON=file.xml jargon ...
 
 ## Install
 
-    # dnf install rubygem-nokogiri w3m docbook-dtds
+Fedora 43:
+
+    # dnf install rubygem-nokogiri rubygem-io-console w3m docbook-dtds
+
+Debian 13:
+
+    # apt-get install ruby-nokogiri w3m docbook-xml
 
 1. Clone the repo.
 2. Symlink `jargon.rb` as `jargon` in your PATH.
@@ -49,13 +59,13 @@ Provide your own dictionary in the same format as `jargon.xml`:
 
         . /path/to/repo/jargon-completion.bash
 
-See a note about `jargon.xml` if on Debian.
+See a note about `jargon.xml` if on a non-standard distro or macOS.
 
 ## How it works
 
 1. Nokogiri converts DocBook into HTML.
 2. `w3m` converts HTML to text.
-3. `jargon.rb` prints entries, searches them, and supplies Bash
+3. `jargon.rb` prints entries, searches them, & supplies Bash
    completions.
 
 No XSLT or Java is used for anything.
@@ -65,13 +75,14 @@ No XSLT or Java is used for anything.
 Original unmodified file (v4.4.7, 2003-12-29, DocBook 4.1.2 format),
 from ESR's `jargsrc.tar`.
 
-`jargon.catalog.xml` is required to resolve entities like `&ecirc;`.
-It depends on `docbook-dtds` (Fedora). On Debian (`docbook-xml`), edit
-the `uri=` attribute, and run
+One of `jargon.catalog.*.xml` is required to resolve entities like
+`&ecirc;`.  They depend on legacy DocBook XML DTDs. If your distro is
+not Fedora/Debian/Ubuntu, copy `jargon.catalog.fedora.xml` to
+`jargon.catalog.unknown.xml`, edit the `uri=` attribute, & run
 
 ~~~
-$ jargon support | grep -o têete-à-têete
-têete-à-têete
+$ jargon ambimouseterous | head -1
+:ambimouseterous: /am·b@·mows´ter·us/, adj
 ~~~
 
 to test.

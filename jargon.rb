@@ -226,6 +226,7 @@ def main
 
   doc = Nokogiri::XML(File.read db) {|o| o.dtdload.noent }
   doc.errors.each { |error| puts "libxml2 error: #{error.message}" } if $VERBOSE
+  abort "#{db}: no <glossentry>" unless doc.at_css('glossentry')
 
   grep = opt[:mode_full_text] ? :full_text_match : :term_match
   fmt = opt[:mode_indices] ? :term_fmt : :entry_fmt
