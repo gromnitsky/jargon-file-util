@@ -188,8 +188,7 @@ def sigint_handler; proc {|s| exit 128+s }; end
 
 def os_id
   begin
-    r = File.read('/etc/os-release').scan(/^id=(.+)/i) && $1
-    return 'debian' if r == 'ubuntu'
+    r = File.read('/etc/os-release').scan(/^id(_like)?=(.+)/i) && $2
     r || raise
   rescue
     'unknown'

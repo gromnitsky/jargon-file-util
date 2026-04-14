@@ -81,8 +81,8 @@ not Fedora/Debian/Ubuntu, copy `jargon.catalog.fedora.xml` to
 `jargon.catalog.unknown.xml`, edit the `uri=` attribute, & run
 
 ~~~
-$ jargon ambimouseterous | head -1
-:ambimouseterous: /am·b@·mows´ter·us/, adj
+$ jargon autobogotiphobia | head -1
+:autobogotiphobia: /aw´toh·boh·got`@·foh´bee·@/
 ~~~
 
 to test.
