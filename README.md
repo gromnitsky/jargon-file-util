@@ -1,3 +1,7 @@
+23 sec demo:
+
+[![clip](https://img.youtube.com/vi/o8tMoiRHgog/maxresdefault.jpg)](https://www.youtube.com/watch?v=o8tMoiRHgog)
+
 ## Usage
 
 ~~~
@@ -10,7 +14,7 @@ Usage: jargon pattern [fimh]
   h       html output
 ~~~
 
-List entries that contain pattern *sloppy* (match is always
+List entries that contain pattern *sloppy* (matches are always
 case-insensitive):
 
 ~~~
@@ -43,6 +47,8 @@ Provide your own dictionary in the same format as `jargon.xml`:
 
     $ JARGON=file.xml jargon ...
 
+`MANWIDTH` env var controls the max line length.
+
 ## Install
 
 Fedora 43:
@@ -70,7 +76,7 @@ See a note about `jargon.xml` if on a non-standard distro or macOS.
 
 No XSLT or Java is used for anything.
 
-## jargon.xml
+## `jargon.xml`
 
 Original unmodified file (v4.4.7, 2003-12-29, DocBook 4.1.2 format),
 from ESR's `jargsrc.tar`.
@@ -86,6 +92,12 @@ $ jargon autobogotiphobia | head -1
 ~~~
 
 to test.
+
+## Alternatives
+
+* [rdubar/jargon](https://github.com/rdubar/jargon) - Jargon File CLI
+  Utility.
+* [esr/vh](https://gitlab.com/esr/vh) - Pre-Web hypertext browser for the Jargon File.
 
 ## License
 
