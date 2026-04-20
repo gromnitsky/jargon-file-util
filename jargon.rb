@@ -2,6 +2,7 @@
 
 require 'io/console'
 require 'nokogiri'
+require 'uri'
 
 def term_match pattern, glossentry
   glossentry.at_css('glossterm').text.downcase =~ pattern
@@ -25,7 +26,7 @@ class Glossentry
     @id = 'ge_' + @term[:term].strip.gsub(/[^A-Za-z0-9_-]+/, '_') + "_#{idx}"
 
     @defs = node.css('glossdef').map do |d|
-      glossentry_to_html d      # in-place
+      glossentry_to_html d, opt      # in-place
       d.name = 'div'
       d.add_class 'glossdef'
     end
@@ -88,6 +89,13 @@ def glossterm_to_text node
   node.add_class 'glossterm_link'
 end
 
+def glossterm_to_a node
+  params = { "f" => "1", "q" => node.text.gsub(/\s+/, ' ') }
+  node["href"] = '?' + URI.encode_www_form(params)
+  node.name = 'a'
+  node.add_class 'glossterm_link'
+end
+
 def ulink_to_a node
   node.name = 'a'
   node['href'] = node['url']
@@ -133,7 +141,7 @@ def quote_to_text node
   node.name = 'cite'
 end
 
-def glossentry_to_html glossentry
+def glossentry_to_html glossentry, opt
   {
     'informaltable'  => 'table',
     'tgroup'         => nil,    # unwrap (remove but keep children)
@@ -146,7 +154,7 @@ def glossentry_to_html glossentry
     'literallayout'  => 'pre',
     'emphasis'       => 'em',
     'ulink'          => :ulink_to_a,
-    'glossterm'      => :glossterm_to_text,
+    'glossterm'      => opt[:mode_html] ? :glossterm_to_a : :glossterm_to_text,
     'mediaobject'    => :mediaobject_to_img,
     'citerefentry'   => :citerefentry_to_text,
     'xref'           => :xref_to_text,
