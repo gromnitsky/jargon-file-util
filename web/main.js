@@ -19,8 +19,8 @@ function index_fetch(url) {
         if (!r.ok) throw new Error(`failed to fetch index: HTTP ${r.status}`)
         return r.text()
     }).then( r => {
-        return r.split("\n").map( (v, idx) => {
-            return [v, gen_id(v, idx), idx]
+        return r.split("\n").filter(Boolean).map( (v, idx) => {
+            return [v, idx]
         })
     })
 }
@@ -41,9 +41,10 @@ function update_url(form) {
 class App {
     constructor() {
         this.gui = {
-            list: document.querySelector('#list'),
             form: document.querySelector('#index form'),
+            search: document.querySelector('#index form input[type="search"]'),
             status: document.querySelector('#status'),
+            list: document.querySelector('#list'),
             defs: document.querySelector('#defs'),
             nav: {
                 prev: document.querySelector('#prev'),
@@ -101,9 +102,13 @@ class App {
         this.gui.nav.next.disabled = true
 
         let slice_from = Number(this.gui.form.elements.slice_from.value)
+        if (slice_from > this.terms.length)
+            slice_from = this.terms.length - GLOSSENTRIES_MAX
         let start = slice_from < 0 ? 0 : slice_from
         let end = start+GLOSSENTRIES_MAX
         console.log(start, end)
+
+        if (!this.terms.length) return
 
         // highlight list
         this.gui.list.querySelectorAll('a.rendered').forEach( node => {
@@ -114,9 +119,11 @@ class App {
             if (!list_nodes[i]) break
             list_nodes[i].classList.add('rendered')
         }
+        list_nodes[start].scrollIntoView({block: "center", container: "nearest"})
 
+        console.log(this.terms.slice(start, end))
         this.terms.slice(start, end).forEach( v => {
-            glossentry_append_child(v[1], this.gui.defs)
+            glossentry_append_child(gen_id(v[0], v[1]), this.gui.defs)
         })
 
         if (start > 0) {
@@ -129,6 +136,8 @@ class App {
 
     defs_view_slice(step) {
         let slice_from = Number(this.gui.form.elements.slice_from.value)
+        if (slice_from > this.terms.length)
+            slice_from = this.terms.length - GLOSSENTRIES_MAX
         let start = (slice_from < 0 ? 0 : slice_from) + step
         this.gui.form.elements.slice_from.value = start
         this.defs_render()
@@ -163,7 +172,7 @@ async function main() {
 
     let params = new URLSearchParams(location.search)
     app.gui.form.elements.q.value = params.get('q')
-    app.gui.form.elements.fts.value = params.get('fts')
+    app.gui.form.elements.fts.checked = params.get('fts')
     app.gui.form.elements.slice_from.value = params.get('slice_from')
     app.gui.form.elements.f.checked = params.get('f')
 
@@ -183,6 +192,10 @@ async function main() {
     app.gui.nav.prev.onclick = function() {
         app.defs_render_prev()
         update_url(app.gui.form)
+    }
+
+    app.gui.search.onfocus = function() {
+        app.gui.form.elements.f.checked = false
     }
 
     app.form_search(index)
