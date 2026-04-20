@@ -105,12 +105,12 @@ class App {
         if (slice_from > this.terms.length)
             slice_from = this.terms.length - GLOSSENTRIES_MAX
         let start = slice_from < 0 ? 0 : slice_from
-        let end = start+GLOSSENTRIES_MAX
-        console.log(start, end)
+        let end = start + GLOSSENTRIES_MAX
+//        console.log(start, end)
 
         if (!this.terms.length) return
 
-        // highlight list
+        // highlight what is going to be rendered
         this.gui.list.querySelectorAll('a.rendered').forEach( node => {
             node.classList.remove('rendered')
         })
@@ -121,17 +121,12 @@ class App {
         }
         list_nodes[start].scrollIntoView({block: "center", container: "nearest"})
 
-        console.log(this.terms.slice(start, end))
         this.terms.slice(start, end).forEach( v => {
             glossentry_append_child(gen_id(v[0], v[1]), this.gui.defs)
         })
 
-        if (start > 0) {
-            this.gui.nav.prev.disabled = false
-        }
-        if (end < this.terms.length) {
-            this.gui.nav.next.disabled = false
-        }
+        if (start > 0) this.gui.nav.prev.disabled = false
+        if (end < this.terms.length) this.gui.nav.next.disabled = false
     }
 
     defs_view_slice(step) {
