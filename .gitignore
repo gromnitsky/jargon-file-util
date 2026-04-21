@@ -1,2 +1,6 @@
 web/glossentries
+web/index.json
 web/index.txt
+web/*.min.js
+web/node_modules
+fts/node_modules
