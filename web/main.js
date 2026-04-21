@@ -192,6 +192,15 @@ async function main() {
         update_url(app.gui.form, true)
     }
 
+    app.gui.form.onreset = function(evt) {
+        evt.preventDefault()
+        app.gui.form.elements.q.value = ''
+        app.gui.form.elements.slice_from.value = 0
+        app.gui.form.elements.f.checked = false
+        app.form_search()
+        update_url(app.gui.form)
+    }
+
     app.gui.nav.next.onclick = function() {
         app.defs_render_next()
         update_url(app.gui.form)
@@ -238,6 +247,7 @@ async function main() {
     app.form_search()
 
     window.addEventListener('popstate', function() {
+        console.log('popstate')
         url_to_form()
         app.form_search()
     })
