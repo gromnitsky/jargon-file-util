@@ -1,3 +1,5 @@
+const GLOSSENTRIES_MAX = 4
+
 function glossentry_append_child(id, parent_node) {
     let url = `glossentries/${id}.html`
     fetch(url).then( r => {
@@ -25,8 +27,8 @@ function index_fetch(url) {
     })
 }
 
-function gen_id(text, idx) {
-    return 'ge_' + text.trim().replaceAll(/[^A-Za-z0-9_-]+/g, '_') + `_${idx}`
+function gen_id(term, idx) {
+    return 'ge_' + term.trim().replaceAll(/[^A-Za-z0-9_-]+/g, '_') + `_${idx}`
 }
 
 function update_url(form) {
@@ -38,8 +40,16 @@ function update_url(form) {
     window.history.replaceState({}, '', url.toString())
 }
 
+function show_error(node, e) {
+    let div = document.createElement('div')
+    div.classList.add('error')
+    div.innerText = e
+    node.replaceChildren(div)
+    console.error(e)
+}
+
 class App {
-    constructor() {
+    constructor(index) {
         this.gui = {
             form: document.querySelector('#index form'),
             search: document.querySelector('#index form input[type="search"]'),
@@ -47,10 +57,12 @@ class App {
             list: document.querySelector('#list'),
             defs: document.querySelector('#defs'),
             nav: {
+                itself: document.querySelector('nav'),
                 prev: document.querySelector('#prev'),
                 next: document.querySelector('#next'),
             },
         }
+        this.index = index
         this.terms = []
     }
 
@@ -59,19 +71,11 @@ class App {
         fieldset.disabled = !fieldset.disabled
     }
 
-    show_error(e) {
-        let div = document.createElement('div')
-        div.classList.add('error')
-        div.innerText = e
-        this.gui.status.replaceChildren(div)
-        console.error(e)
-    }
-
-    search(index, fts) {
+    find() {
         let q = this.gui.form.elements.q.value.trim()
-        let fixed_string = this.gui.form.elements.f.checked
+        if (0 === q.length) return this.index
+
         // FIXME: let fts = form.elements.fts.value
-        if (0 === q.length) return index
 
         let simple = v => v[0] === q
         let regex  = v => {
@@ -79,8 +83,9 @@ class App {
             return pattern.test(v[0].toLowerCase())
         }
 
+        let fixed_string = this.gui.form.elements.f.checked
         let grep = fixed_string ? simple : regex
-        return index.filter( v => grep(v))
+        return this.index.filter( v => grep(v))
     }
 
     index_render(terms) {
@@ -98,6 +103,7 @@ class App {
 
     defs_render() {
         this.gui.defs.innerHTML = ''
+        this.gui.nav.itself.classList.add('hidden')
         this.gui.nav.prev.disabled = true
         this.gui.nav.next.disabled = true
 
@@ -125,6 +131,7 @@ class App {
             glossentry_append_child(gen_id(v[0], v[1]), this.gui.defs)
         })
 
+        this.gui.nav.itself.classList.remove('hidden')
         if (start > 0) this.gui.nav.prev.disabled = false
         if (end < this.terms.length) this.gui.nav.next.disabled = false
     }
@@ -141,35 +148,33 @@ class App {
     defs_render_prev() { this.defs_view_slice(-GLOSSENTRIES_MAX) }
     defs_render_next() { this.defs_view_slice(GLOSSENTRIES_MAX) }
 
-    form_search(index, fts) {
+    form_search() {
         this.form_toggle()
 
-        this.terms = this.search(index, null) // FIXME
+        this.terms = this.find()
         this.index_render(this.terms)
-        this.gui.status.innerText = `Matched items: ${this.terms.length}`
+        this.gui.status.innerText = `Matched: ${this.terms.length}`
 
         this.form_toggle()
         this.defs_render()
     }
 }
 
-const GLOSSENTRIES_MAX = 4
-
 async function main() {
-    let app = new App()
-
     let index
     try {
         index = await index_fetch('index.txt')
     } catch(e) {
-        return app.show_error(e)
+        return show_error(document.querySelector('#status'), e)
     }
 
+    let app = new App(index)
+
     let params = new URLSearchParams(location.search)
-    app.gui.form.elements.q.value = params.get('q')
-    app.gui.form.elements.fts.checked = params.get('fts')
+    app.gui.form.elements.q.value          = params.get('q')
+    app.gui.form.elements.fts.checked      = params.get('fts')
     app.gui.form.elements.slice_from.value = params.get('slice_from')
-    app.gui.form.elements.f.checked = params.get('f')
+    app.gui.form.elements.f.checked        = params.get('f')
 
     app.gui.form.onsubmit = function(evt) {
         evt.preventDefault()
@@ -193,7 +198,7 @@ async function main() {
         app.gui.form.elements.f.checked = false
     }
 
-    app.form_search(index)
+    app.form_search()
 }
 
 main()
