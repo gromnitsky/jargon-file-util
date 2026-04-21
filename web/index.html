@@ -55,7 +55,7 @@
     }
   }
 
-  #index {
+  header {
     margin-bottom: 1em;
 
     form fieldset {
@@ -68,6 +68,7 @@
         width: 100%;
         font-family: monospace;
       }
+      label { white-space: nowrap; }
     }
   }
 
@@ -75,7 +76,7 @@
     margin: var(--gap) 0;
   }
 
-  #list {
+  #index {
     border-top: 1px solid;
     border-bottom: 1px solid;
     max-height: 10em;
@@ -105,35 +106,33 @@
   }
 
   .hidden { display: none; }
+  .disabled { color: gray; }
 }
 </style>
 
 <script src="main.js" type="module"></script>
 
-<div>
-  <div id="index">
-    <form>
-      <fieldset>
-        <input type="search" spellcheck="false" name="q">
+<header>
+  <form>
+    <fieldset disabled>
+      <input type="search" spellcheck="false" name="q">
 
-        <input type="checkbox" name="f" id="fixed_string" disabled>
-        <label for="fixed_string" style="white-space: nowrap; color: gray;     user-select: none;">Fixed string</label>
+      <input type="checkbox" name="f" id="fixed_string" disabled>
+      <label for="fixed_string" class="disabled">Fixed string</label>
 
-        <input type="checkbox" name="fts" id="fts">
-        <label for="fts" style="white-space: nowrap">FTS</label>
+      <input type="checkbox" name="fts" id="fts">
+      <label for="fts">FTS</label>
 
-        <input type="hidden" name="slice_from">
-      </fieldset>
-    </form>
-    <div id="status"></div>
-    <div id="list"></div>
-  </div>
+      <input type="hidden" name="slice_from">
+    </fieldset>
+  </form>
+  <div id="status"></div>
+  <div id="index"></div>
+</header>
 
-  <div id="defs">
-  </div>
+<main></main> <!-- defs -->
 
-  <nav>
-    <button id="prev">Previous</button>
-    <button id="next">Next</button>
-  </nav>
-</div>
+<nav>
+  <button id="prev">Previous</button>
+  <button id="next">Next</button>
+</nav>

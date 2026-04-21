@@ -51,15 +51,15 @@ function show_error(node, e) {
 class App {
     constructor(index) {
         this.gui = {
-            form: document.querySelector('#index form'),
-            search: document.querySelector('#index form input[type="search"]'),
-            status: document.querySelector('#status'),
-            list: document.querySelector('#list'),
-            defs: document.querySelector('#defs'),
+            form   : document.querySelector('header form'),
+            search : document.querySelector('header form input[type="search"]'),
+            status : document.querySelector('#status'),
+            index  : document.querySelector('#index'),
+            defs   : document.querySelector('main'),
             nav: {
-                itself: document.querySelector('nav'),
-                prev: document.querySelector('#prev'),
-                next: document.querySelector('#next'),
+                itself : document.querySelector('nav'),
+                prev   : document.querySelector('#prev'),
+                next   : document.querySelector('#next'),
             },
         }
         this.index = index
@@ -88,17 +88,30 @@ class App {
         return this.index.filter( v => grep(v))
     }
 
-    index_render(terms) {
-        let list = terms.map( v => {
+    terms_render() {
+        let anchors = this.terms.map( v => {
             let a = document.createElement('a')
             a.innerHTML = v[0]
+            a.dataset.orig_idx = v[1]
             let params = new URLSearchParams()
             params.set('q', v[0])
             params.set('f', 1)
             a.href = '?' + params.toString()
             return a
         })
-        this.gui.list.replaceChildren(...list)
+        this.gui.index.replaceChildren(...anchors)
+    }
+
+    terms_highlight(start, end) {
+        this.gui.index.querySelectorAll('a.rendered').forEach( node => {
+            node.classList.remove('rendered')
+        })
+        let idx_nodes = this.gui.index.children
+        for (let i = start; i < end; ++i) {
+            if (!idx_nodes[i]) break
+            idx_nodes[i].classList.add('rendered')
+        }
+        idx_nodes[start].scrollIntoView({block: "center", container: "nearest"})
     }
 
     defs_render() {
@@ -106,6 +119,7 @@ class App {
         this.gui.nav.itself.classList.add('hidden')
         this.gui.nav.prev.disabled = true
         this.gui.nav.next.disabled = true
+        if (!this.terms.length) return
 
         let slice_from = Number(this.gui.form.elements.slice_from.value)
         if (slice_from > this.terms.length)
@@ -114,18 +128,7 @@ class App {
         let end = start + GLOSSENTRIES_MAX
 //        console.log(start, end)
 
-        if (!this.terms.length) return
-
-        // highlight what is going to be rendered
-        this.gui.list.querySelectorAll('a.rendered').forEach( node => {
-            node.classList.remove('rendered')
-        })
-        let list_nodes = this.gui.list.children
-        for (let i = start; i < end; ++i) {
-            if (!list_nodes[i]) break
-            list_nodes[i].classList.add('rendered')
-        }
-        list_nodes[start].scrollIntoView({block: "center", container: "nearest"})
+        this.terms_highlight(start, end)
 
         this.terms.slice(start, end).forEach( v => {
             glossentry_append_child(gen_id(v[0], v[1]), this.gui.defs)
@@ -149,13 +152,9 @@ class App {
     defs_render_next() { this.defs_view_slice(GLOSSENTRIES_MAX) }
 
     form_search() {
-        this.form_toggle()
-
         this.terms = this.find()
-        this.index_render(this.terms)
+        this.terms_render()
         this.gui.status.innerText = `Matched: ${this.terms.length}`
-
-        this.form_toggle()
         this.defs_render()
     }
 }
@@ -169,6 +168,7 @@ async function main() {
     }
 
     let app = new App(index)
+    app.form_toggle()
 
     let params = new URLSearchParams(location.search)
     app.gui.form.elements.q.value          = params.get('q')
@@ -180,7 +180,7 @@ async function main() {
         evt.preventDefault()
         app.gui.form.elements.slice_from.value = 0
         app.gui.form.elements.f.checked = false
-        app.form_search(index)
+        app.form_search()
         update_url(app.gui.form)
     }
 
