@@ -1,4 +1,5 @@
 const GLOSSENTRIES_MAX = 4
+const TITLE = 'Jargon File Util'
 
 function glossentry_append_child(id, parent_node) {
     let url = `glossentries/${id}.html`
@@ -31,13 +32,15 @@ function gen_id(term, idx) {
     return 'ge_' + term.trim().replaceAll(/[^A-Za-z0-9_-]+/g, '_') + `_${idx}`
 }
 
-function update_url(form) {
-    let url = new URL(location.href)
-    url.searchParams.set('q', form.elements.q.value)
-    url.searchParams.set('slice_from', form.elements.slice_from.value)
-    url.searchParams.set('fts', form.elements.fts.checked ? 1 : '')
-    url.searchParams.set('f', form.elements.f.checked ? 1 : '')
-    window.history.replaceState({}, '', url.toString())
+function update_url(form, is_push) {
+    let u = new URL(location.href)
+    let q = form.elements.q.value
+    u.searchParams.set('q', q)
+    u.searchParams.set('slice_from', form.elements.slice_from.value)
+    u.searchParams.set('fts', form.elements.fts.checked ? 1 : '')
+    u.searchParams.set('f', form.elements.f.checked ? 1 : '')
+    window.history[is_push ? 'pushState' : 'replaceState']({}, '', u.toString())
+    document.title = TITLE + (q.length ? `:: ${q}` : '')
 }
 
 function show_error(node, e) {
@@ -171,18 +174,22 @@ async function main() {
     let app = new App(index)
     app.form_toggle()
 
-    let params = new URLSearchParams(location.search)
-    app.gui.form.elements.q.value          = params.get('q')
-    app.gui.form.elements.fts.checked      = params.get('fts')
-    app.gui.form.elements.slice_from.value = params.get('slice_from')
-    app.gui.form.elements.f.checked        = params.get('f')
+    let url_to_form = () => {
+        let params = new URLSearchParams(location.search)
+        app.gui.form.elements.q.value          = params.get('q')
+        app.gui.form.elements.fts.checked      = params.get('fts')
+        app.gui.form.elements.slice_from.value = params.get('slice_from')
+        app.gui.form.elements.f.checked        = params.get('f')
+    }
+
+    url_to_form()
 
     app.gui.form.onsubmit = function(evt) {
         evt.preventDefault()
         app.gui.form.elements.slice_from.value = 0
         app.gui.form.elements.f.checked = false
         app.form_search()
-        update_url(app.gui.form)
+        update_url(app.gui.form, true)
     }
 
     app.gui.nav.next.onclick = function() {
@@ -201,7 +208,7 @@ async function main() {
 
     app.gui.index.onclick = function(evt) {
         let a = evt.target
-        if (a.nodeName !== 'A') return
+        if (a.tagName !== 'A') return
         evt.preventDefault()
 
         let anchors = a.parentElement.children
@@ -214,7 +221,26 @@ async function main() {
         update_url(app.gui.form)
     }
 
+    app.gui.defs.onclick = function(evt) {
+        let a = evt.target
+        if (a.tagName !== 'A') return
+        if (!a.classList.contains('glossterm_link')) return
+        evt.preventDefault()
+
+        app.gui.form.elements.f.checked = true
+        app.gui.form.elements.fts.checked = false
+        app.gui.form.elements.q.value = a.innerText
+        app.gui.form.elements.slice_from.value = 0
+        app.form_search()
+        update_url(app.gui.form, true)
+    }
+
     app.form_search()
+
+    window.addEventListener('popstate', function() {
+        url_to_form()
+        app.form_search()
+    })
 }
 
 main()
