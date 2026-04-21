@@ -1,3 +1,5 @@
+/* global lunr */
+
 const GLOSSENTRIES_MAX = 4
 const TITLE = 'Jargon File Util'
 
@@ -19,12 +21,19 @@ function glossentry_append_child(id, parent_node) {
 
 function index_fetch(url) {
     return fetch(url).then( r => {
-        if (!r.ok) throw new Error(`failed to fetch index: HTTP ${r.status}`)
+        if (!r.ok) throw new Error(`index fetch failed: HTTP ${r.status}`)
         return r.text()
     }).then( r => {
         return r.split("\n").filter(Boolean).map( (v, idx) => {
             return [v, idx]
         })
+    })
+}
+
+function index_fts_fetch(url) {
+    return fetch(url).then( r => {
+        if (!r.ok) throw new Error(`FTS index fetch failed: HTTP ${r.status}`)
+        return r.json()
     })
 }
 
@@ -64,9 +73,14 @@ class App {
                 prev   : document.querySelector('#prev'),
                 next   : document.querySelector('#next'),
             },
+            fts: {
+                checkbox : document.querySelector('#form__fts'),
+                dialog   : document.querySelector('#fts_dialog'),
+            }
         }
         this.index = index
         this.terms = []
+        this.index_fts = null   // loaded separately
     }
 
     form_toggle() {
@@ -76,19 +90,26 @@ class App {
 
     find() {
         let q = this.gui.form.elements.q.value.trim()
+        let fts = this.gui.form.elements.fts.checked
         if (0 === q.length) return this.index
 
-        // FIXME: let fts = form.elements.fts.value
+        if (this.index_fts && fts) {
+            let r = this.index_fts.search(q)
+            return r.map( found => {
+                return this.index.find( v => v[1] === parseInt(found.ref))
+            })
 
-        let simple = v => v[0] === q
-        let regex  = v => {
-            let pattern = new RegExp(q, 'i')
-            return pattern.test(v[0].toLowerCase())
+        } else {
+            let simple = v => v[0] === q
+            let regex  = v => {
+                let pattern = new RegExp(q, 'i')
+                return pattern.test(v[0].toLowerCase())
+            }
+
+            let fixed_string = this.gui.form.elements.f.checked
+            let grep = fixed_string ? simple : regex
+            return this.index.filter( v => grep(v))
         }
-
-        let fixed_string = this.gui.form.elements.f.checked
-        let grep = fixed_string ? simple : regex
-        return this.index.filter( v => grep(v))
     }
 
     terms_render() {
@@ -174,12 +195,19 @@ async function main() {
     let app = new App(index)
     app.form_toggle()
 
-    let url_to_form = () => {
+    let url_to_form = is_popstate => {
         let params = new URLSearchParams(location.search)
         app.gui.form.elements.q.value          = params.get('q')
-        app.gui.form.elements.fts.checked      = params.get('fts')
         app.gui.form.elements.slice_from.value = params.get('slice_from')
         app.gui.form.elements.f.checked        = params.get('f')
+        if (is_popstate) {
+            app.gui.form.elements.fts.checked = params.get('fts')
+        } else {
+            // no `app.gui.form.elements.fts` here, for we can't do an
+            // FTS query before a (potentially) huge index.json is
+            // fetched, and we fetch it only on an explicit user
+            // request (a user must click on "FTS" checkbox)
+        }
     }
 
     url_to_form()
@@ -244,11 +272,24 @@ async function main() {
         update_url(app.gui.form, true)
     }
 
+    app.gui.fts.checkbox.onclick = async function() {
+        if (app.index_fts) return
+
+        app.gui.fts.dialog.showModal()
+        try {
+            let json = await index_fts_fetch('index.json')
+            app.index_fts = lunr.Index.load(json)
+        } catch(e) {
+            return show_error(document.querySelector('#status'), e)
+        } finally {
+            app.gui.fts.dialog.close()
+        }
+    }
+
     app.form_search()
 
     window.addEventListener('popstate', function() {
-        console.log('popstate')
-        url_to_form()
+        url_to_form(true)
         app.form_search()
     })
 }

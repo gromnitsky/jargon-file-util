@@ -138,11 +138,11 @@
       <input type="search" spellcheck="false" name="q">
       <input type="reset" value="RST">
 
-      <input type="checkbox" name="f" id="fixed_string" disabled>
-      <label for="fixed_string" class="disabled">grep -F</label>
+      <input type="checkbox" name="f" id="form__fixed_string" disabled>
+      <label for="form__fixed_string" class="disabled">grep -F</label>
 
-      <input type="checkbox" name="fts" id="fts">
-      <label for="fts">FTS</label>
+      <input type="checkbox" name="fts" id="form__fts">
+      <label for="form__fts">FTS</label>
 
       <input type="hidden" name="slice_from">
     </fieldset>
@@ -153,10 +153,15 @@
 
 <main></main> <!-- defs -->
 
-<nav>
+<nav class="hidden">
   <button id="prev">Previous</button>
   <button id="next">Next</button>
 </nav>
+
+<dialog id="fts_dialog">
+  <p>Loading an FTS index, please wait.</p>
+  <p>This popup window will auto-close.</p>
+</dialog>
 
 <script src="node_modules/lunr/lunr.min.js"></script>
 <script src="main.js" type="module"></script>
