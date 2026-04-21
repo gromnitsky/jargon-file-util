@@ -135,14 +135,16 @@
 <header>
   <form>
     <fieldset disabled>
-      <input type="search" spellcheck="false" name="q">
-      <input type="reset" value="RST">
-
-      <input type="checkbox" name="f" id="form__fixed_string" disabled>
-      <label for="form__fixed_string" class="disabled">grep -F</label>
+      <input type="reset" value="R" title="Reset">
 
       <input type="checkbox" name="fts" id="form__fts">
       <label for="form__fts">FTS</label>
+
+      <input type="submit" value="Go">
+      <input type="search" spellcheck="false" name="q">
+
+      <input type="checkbox" name="f" id="form__fixed_string" disabled>
+      <label for="form__fixed_string" class="disabled">grep -F</label>
 
       <input type="hidden" name="slice_from">
     </fieldset>
