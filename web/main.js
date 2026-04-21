@@ -197,6 +197,7 @@ async function main() {
 
     let url_to_form = is_popstate => {
         let params = new URLSearchParams(location.search)
+        app.gui.form.reset() // otherwise firefox may 'cache' form values
         app.gui.form.elements.q.value          = params.get('q')
         app.gui.form.elements.slice_from.value = params.get('slice_from')
         app.gui.form.elements.f.checked        = params.get('f')
