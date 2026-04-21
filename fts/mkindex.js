@@ -4,6 +4,10 @@ import * as readline from 'readline/promises';
 import lunr from 'lunr'
 
 let lb = new lunr.Builder()
+
+lb.pipeline.add(lunr.trimmer, lunr.stopWordFilter, lunr.stemmer)
+lb.searchPipeline.add(lunr.stemmer)
+
 lb.ref('idx')
 lb.field('term')
 lb.field('def')
