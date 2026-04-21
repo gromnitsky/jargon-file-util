@@ -4,23 +4,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root {
+    --body-fg: #191919;
     --gap: 4px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --body-fg: #cdcdcd;
+      --body-bg: #1b1b1b;
+    }
   }
 
   html { overflow-y: scroll; }
 
+  body {
+    color: var(--body-fg);
+    background: var(--body-bg);
+    font-family: sans-serif;
+  }
+
   @media screen and (min-width: 801px) {
     body {
-      font-family: sans-serif;
       width: 800px;
       margin: 8px auto;
     }
   }
 
   .error {
-      background: crimson;
-      color: white;
-      padding: var(--gap);
+    background: crimson;
+    color: white;
+    padding: var(--gap);
   }
 
   .glossentry {
@@ -71,6 +84,9 @@
         width: 100%;
         font-family: monospace;
       }
+      input[type="checkbox"] {
+        margin: 0 0 0 var(--gap);
+      }
       label { white-space: nowrap; }
     }
   }
@@ -114,7 +130,6 @@
   .disabled { color: gray; }
 
   img { max-width: 100% };
-}
 </style>
 
 <script src="main.js" type="module"></script>
@@ -126,7 +141,7 @@
       <input type="reset" value="RST">
 
       <input type="checkbox" name="f" id="fixed_string" disabled>
-      <label for="fixed_string" class="disabled">Fixed string</label>
+      <label for="fixed_string" class="disabled">grep -F</label>
 
       <input type="checkbox" name="fts" id="fts">
       <label for="fts">FTS</label>
