@@ -34,8 +34,8 @@ function gen_id(term, idx) {
 function update_url(form) {
     let url = new URL(location.href)
     url.searchParams.set('q', form.elements.q.value)
-    url.searchParams.set('fts', form.elements.fts.value)
     url.searchParams.set('slice_from', form.elements.slice_from.value)
+    url.searchParams.set('fts', form.elements.fts.checked ? 1 : '')
     url.searchParams.set('f', form.elements.f.checked ? 1 : '')
     window.history.replaceState({}, '', url.toString())
 }
@@ -102,7 +102,7 @@ class App {
         this.gui.index.replaceChildren(...anchors)
     }
 
-    terms_highlight(start, end) {
+    terms_highlight(start, end, opt = {}) {
         this.gui.index.querySelectorAll('a.rendered').forEach( node => {
             node.classList.remove('rendered')
         })
@@ -111,10 +111,11 @@ class App {
             if (!idx_nodes[i]) break
             idx_nodes[i].classList.add('rendered')
         }
-        idx_nodes[start].scrollIntoView({block: "center", container: "nearest"})
+        if (!opt.do_not_scroll_index)
+            idx_nodes[start].scrollIntoView({block: "center", container: "nearest"})
     }
 
-    defs_render() {
+    defs_render(opt) {
         this.gui.defs.innerHTML = ''
         this.gui.nav.itself.classList.add('hidden')
         this.gui.nav.prev.disabled = true
@@ -128,7 +129,7 @@ class App {
         let end = start + GLOSSENTRIES_MAX
 //        console.log(start, end)
 
-        this.terms_highlight(start, end)
+        this.terms_highlight(start, end, opt)
 
         this.terms.slice(start, end).forEach( v => {
             glossentry_append_child(gen_id(v[0], v[1]), this.gui.defs)
@@ -139,13 +140,13 @@ class App {
         if (end < this.terms.length) this.gui.nav.next.disabled = false
     }
 
-    defs_view_slice(step) {
+    defs_view_slice(step, opt) {
         let slice_from = Number(this.gui.form.elements.slice_from.value)
         if (slice_from > this.terms.length)
             slice_from = this.terms.length - GLOSSENTRIES_MAX
         let start = (slice_from < 0 ? 0 : slice_from) + step
         this.gui.form.elements.slice_from.value = start
-        this.defs_render()
+        this.defs_render(opt)
     }
 
     defs_render_prev() { this.defs_view_slice(-GLOSSENTRIES_MAX) }
@@ -196,6 +197,21 @@ async function main() {
 
     app.gui.search.onfocus = function() {
         app.gui.form.elements.f.checked = false
+    }
+
+    app.gui.index.onclick = function(evt) {
+        let a = evt.target
+        if (a.nodeName !== 'A') return
+        evt.preventDefault()
+
+        let anchors = a.parentElement.children
+        let orig_idx = a.dataset.orig_idx
+        let local_idx = Array.from(anchors)
+            .findIndex( v => v.dataset.orig_idx === orig_idx)
+
+        app.gui.form.elements.slice_from.value = 0
+        app.defs_view_slice(local_idx, {do_not_scroll_index: true})
+        update_url(app.gui.form)
     }
 
     app.form_search()
