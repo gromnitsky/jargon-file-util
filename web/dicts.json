@@ -4,9 +4,9 @@
         "description": "The New Hacker's Dictionary",
         "version": "4.4.7",
         "updated": "2003-12-29T18:13:54.000Z",
-        "copyright": "public domain",
+        "copyright": "Public domain",
         "languages": ["en"],
-        "url": "http://www.catb.org/jargon/",
+        "url": "https://github.com/gromnitsky/jargon-file-util",
         "path": "jargon-file",
         "options": {
             "glossentries_max": 4

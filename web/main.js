@@ -68,7 +68,8 @@ class App {
             fts: {
                 checkbox : document.querySelector('#form__fts'),
                 dialog   : document.querySelector('#fts_dialog'),
-            }
+            },
+            about: document.querySelector('#about'),
         }
         this.index = index
         this.terms = []
@@ -174,7 +175,34 @@ class App {
         this.terms = this.find()
         this.terms_render()
         this.gui.status.innerText = `Matched: ${this.terms.length}`
+
+        let q = this.gui.form.elements.q.value.trim()
+        if (0 === q.length) return this.about_render()
+
         this.defs_render()
+    }
+
+    about_render() {
+        let str = (template, obj) => {
+            return template.replace(/\$\{(\w+)\}/g, (match, key) =>
+                (key in obj) ? obj[key] : ''
+            )
+        }
+
+        this.gui.defs.innerHTML = ''
+        this.gui.nav.itself.classList.add('hidden')
+
+        let spinner = document.createElement('div')
+        spinner.innerText = `Loading about page...`
+        this.gui.defs.appendChild(spinner)
+
+        efetch(this.meta.path + '/about.html').then( r => r.text())
+            .then( html => {
+                let div = document.createElement('div')
+                div.classList.add('about')
+                div.innerHTML = str(html, this.meta)
+                spinner.replaceWith(div)
+            })
     }
 }
 
