@@ -10,6 +10,11 @@ function efetch(url, opt) {
 
 function glossentry_append_child(path, id, parent_node) {
     let url = `${path}/glossentries/${id}.html`
+
+    let spinner = document.createElement('div')
+    spinner.innerText = `Loading ${id}...`
+    parent_node.appendChild(spinner)
+
     fetch(url).then( r => {
         if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`)
         return r.text()
@@ -18,12 +23,12 @@ function glossentry_append_child(path, id, parent_node) {
         doc.querySelectorAll('img').forEach( node => {
             node.src = path + '/' + node.src
         })
-        parent_node.appendChild(doc.querySelector(".glossentry"))
+        spinner.replaceWith(doc.querySelector(".glossentry"))
     }).catch( e => {
         let div = document.createElement('div')
         div.classList.add('glossentry', 'error')
         div.innerText = e
-        parent_node.appendChild(div)
+        spinner.replaceWith(div)
     })
 }
 
