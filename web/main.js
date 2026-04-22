@@ -90,9 +90,7 @@ class App {
 
         if (this.index_fts && fts) {
             let r = this.index_fts.search(q)
-            return r.map( found => {
-                return this.index.find( v => v[1] === parseInt(found.ref))
-            })
+            return r.map( found => this.index[parseInt(found.ref)])
 
         } else {
             let simple = v => v[0] === q
