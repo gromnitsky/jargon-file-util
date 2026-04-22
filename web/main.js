@@ -244,7 +244,7 @@ async function main() {
         u.searchParams.set('f', form.elements.f.checked ? 1 : '')
         let op = is_push ? 'pushState' : 'replaceState'
         window.history[op]({}, '', u.toString())
-        document.title = meta.name + (q.length ? `:: ${q}` : '')
+        document.title = meta.name + (q.length ? ` :: ${q}` : '')
     }
 
     let url_to_form = is_popstate => {

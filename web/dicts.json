@@ -11,5 +11,13 @@
         "options": {
             "glossentries_max": 4
         }
+    },
+    {
+        "name": "Ойті",
+        "version": "0.0.1",
+        "updated": "2026-04-22",
+        "copyright": "MIT",
+        "languages": ["uk", "en"],
+        "path": "oiti"
     }
 ]
