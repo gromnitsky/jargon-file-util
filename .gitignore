@@ -1,6 +1,5 @@
-web/glossentries
-web/index.json
-web/index.txt
-web/*.min.js
+web/dicts/jargon-file/glossentries
+web/dicts/jargon-file/index.json
+web/dicts/jargon-file/index.txt
 web/node_modules
 fts/node_modules

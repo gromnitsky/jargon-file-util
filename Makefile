@@ -1,13 +1,13 @@
+out := web/dicts/jargon-file
 SHELL := bash -o pipefail
 
-all: web/index.txt web/glossentries/ge_zorkmid_2306.html \
-	web/index.json web/node_modules/lunr/lunr.min.js
+all: $(addprefix $(out)/, glossentries/ge_zorkmid_2306.html index.txt index.json) web/node_modules/lunr/lunr.min.js
 
 clean:
-	rm web/index.{json,txt}
-	rm -rf web/glossentries web/node_modules
+	rm $(out)/index.{txt,json}
+	rm -rf $(out)/glossentries web/node_modules
 
-web/glossentries/ge_zorkmid_2306.html:
+$(out)/glossentries/ge_zorkmid_2306.html:
 	$(mkdir)
 	./jargon.rb . h | nokogiri -e "$$extract_ge_as_html"
 
@@ -17,11 +17,11 @@ $$_.css('body > div.glossentry').each do |ge|
 end
 endef
 
-web/index.txt:
+$(out)/index.txt:
 	$(mkdir)
 	./jargon.rb . i > $@
 
-web/index.json:
+$(out)/index.json:
 	$(mkdir)
 	./jargon.rb . h | nokogiri -e "$$extract_ge_as_json" | fts/mkindex.js > $@
 
@@ -37,9 +37,9 @@ $$_.css('body > div.glossentry').each_with_index do |ge, idx|
 end
 endef
 
-web/node_modules/%:
+web/node_modules/%: fts/node_modules/%
 	$(mkdir)
-	cp fts/node_modules/$* $@
+	cp $< $@
 
 mkdir = @mkdir -p $(dir $@)
 .DELETE_ON_ERROR:

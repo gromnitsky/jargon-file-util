@@ -1,0 +1,15 @@
+[
+    {
+        "name": "The Jargon File",
+        "description": "The New Hacker's Dictionary",
+        "version": "4.4.7",
+        "updated": "2003-12-29T18:13:54.000Z",
+        "copyright": "public domain",
+        "languages": ["en"],
+        "url": "http://www.catb.org/jargon/",
+        "path": "jargon-file",
+        "options": {
+            "glossentries_max": 4
+        }
+    }
+]

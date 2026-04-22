@@ -1,16 +1,24 @@
 /* global lunr */
 
-const GLOSSENTRIES_MAX = 4
-const TITLE = 'Jargon File Util'
+function efetch(url, opt) {
+    let check_for_2xx = r => {
+        if (!r.ok) throw new Error(`${url}: ${r.status}`)
+        return r
+    }
+    return fetch(url, opt).then(check_for_2xx)
+}
 
-function glossentry_append_child(id, parent_node) {
-    let url = `glossentries/${id}.html`
+function glossentry_append_child(path, id, parent_node) {
+    let url = `${path}/glossentries/${id}.html`
     fetch(url).then( r => {
         if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`)
         return r.text()
     }).then( html => {
-        parent_node.appendChild(Document.parseHTMLUnsafe(html)
-                                .querySelector(".glossentry"))
+        let doc = Document.parseHTMLUnsafe(html)
+        doc.querySelectorAll('img').forEach( node => {
+            node.src = path + '/' + node.src
+        })
+        parent_node.appendChild(doc.querySelector(".glossentry"))
     }).catch( e => {
         let div = document.createElement('div')
         div.classList.add('glossentry', 'error')
@@ -20,36 +28,15 @@ function glossentry_append_child(id, parent_node) {
 }
 
 function index_fetch(url) {
-    return fetch(url).then( r => {
-        if (!r.ok) throw new Error(`index fetch failed: HTTP ${r.status}`)
-        return r.text()
-    }).then( r => {
+    return efetch(url).then( r => r.text()).then( r => {
         return r.split("\n").filter(Boolean).map( (v, idx) => {
             return [v, idx]
         })
     })
 }
 
-function index_fts_fetch(url) {
-    return fetch(url).then( r => {
-        if (!r.ok) throw new Error(`FTS index fetch failed: HTTP ${r.status}`)
-        return r.json()
-    })
-}
-
 function gen_id(term, idx) {
     return 'ge_' + term.trim().replaceAll(/[^A-Za-z0-9_-]+/g, '_') + `_${idx}`
-}
-
-function update_url(form, is_push) {
-    let u = new URL(location.href)
-    let q = form.elements.q.value
-    u.searchParams.set('q', q)
-    u.searchParams.set('slice_from', form.elements.slice_from.value)
-    u.searchParams.set('fts', form.elements.fts.checked ? 1 : '')
-    u.searchParams.set('f', form.elements.f.checked ? 1 : '')
-    window.history[is_push ? 'pushState' : 'replaceState']({}, '', u.toString())
-    document.title = TITLE + (q.length ? `:: ${q}` : '')
 }
 
 function show_error(node, e) {
@@ -61,7 +48,7 @@ function show_error(node, e) {
 }
 
 class App {
-    constructor(index) {
+    constructor(index, meta) {
         this.gui = {
             form   : document.querySelector('header form'),
             search : document.querySelector('header form input[type="search"]'),
@@ -81,6 +68,9 @@ class App {
         this.index = index
         this.terms = []
         this.index_fts = null   // loaded separately
+
+        this.meta = meta
+        this.GLOSSENTRIES_MAX = meta.options.glossentries_max || 4
     }
 
     form_toggle() {
@@ -148,15 +138,16 @@ class App {
 
         let slice_from = Number(this.gui.form.elements.slice_from.value)
         if (slice_from > this.terms.length)
-            slice_from = this.terms.length - GLOSSENTRIES_MAX
+            slice_from = this.terms.length - this.GLOSSENTRIES_MAX
         let start = slice_from < 0 ? 0 : slice_from
-        let end = start + GLOSSENTRIES_MAX
+        let end = start + this.GLOSSENTRIES_MAX
 //        console.log(start, end)
 
         this.terms_highlight(start, end, opt)
 
         this.terms.slice(start, end).forEach( v => {
-            glossentry_append_child(gen_id(v[0], v[1]), this.gui.defs)
+            glossentry_append_child(this.meta.path,
+                                    gen_id(v[0], v[1]), this.gui.defs)
         })
 
         this.gui.nav.itself.classList.remove('hidden')
@@ -167,14 +158,14 @@ class App {
     defs_view_slice(step, opt) {
         let slice_from = Number(this.gui.form.elements.slice_from.value)
         if (slice_from > this.terms.length)
-            slice_from = this.terms.length - GLOSSENTRIES_MAX
+            slice_from = this.terms.length - this.GLOSSENTRIES_MAX
         let start = (slice_from < 0 ? 0 : slice_from) + step
         this.gui.form.elements.slice_from.value = start
         this.defs_render(opt)
     }
 
-    defs_render_prev() { this.defs_view_slice(-GLOSSENTRIES_MAX) }
-    defs_render_next() { this.defs_view_slice(GLOSSENTRIES_MAX) }
+    defs_render_prev() { this.defs_view_slice(-this.GLOSSENTRIES_MAX) }
+    defs_render_next() { this.defs_view_slice(this.GLOSSENTRIES_MAX) }
 
     form_search() {
         this.terms = this.find()
@@ -184,20 +175,48 @@ class App {
     }
 }
 
+async function dict_load_metadata() {
+    let dicts = await efetch('dicts.json').then( r => r.json())
+    if ( !(Array.isArray(dicts) && dicts.length > 0))
+        throw new Error('metadata: invalid array')
+
+    let params = new URLSearchParams(location.search)
+    let cur = dicts?.find( v => params.get('dict') === v.name) || dicts[0]
+    ;['name', 'path'].forEach( v => {
+        if ( !(v in cur)) throw new Error(`metadata: no ${v} specified`)
+    })
+    cur.path = `dicts/${cur.path}`
+    return cur
+}
+
 async function main() {
-    let index
+    let meta, index
     try {
-        index = await index_fetch('index.txt')
-    } catch(e) {
+        meta = await dict_load_metadata()
+        index = await index_fetch(meta.path + '/index.txt')
+    } catch (e) {
         return show_error(document.querySelector('#status'), e)
     }
 
-    let app = new App(index)
+    let app = new App(index, meta)
     app.form_toggle()
+    app.gui.form.reset() // otherwise firefox displays 'cached' form values
+
+    let update_url = is_push => {
+        let u = new URL(location.href)
+        let form = app.gui.form
+        let q = form.elements.q.value
+        u.searchParams.set('q', q)
+        u.searchParams.set('slice_from', form.elements.slice_from.value)
+        u.searchParams.set('fts', form.elements.fts.checked ? 1 : '')
+        u.searchParams.set('f', form.elements.f.checked ? 1 : '')
+        let op = is_push ? 'pushState' : 'replaceState'
+        window.history[op]({}, '', u.toString())
+        document.title = meta.name + (q.length ? `:: ${q}` : '')
+    }
 
     let url_to_form = is_popstate => {
         let params = new URLSearchParams(location.search)
-        app.gui.form.reset() // otherwise firefox may 'cache' form values
         app.gui.form.elements.q.value          = params.get('q')
         app.gui.form.elements.slice_from.value = params.get('slice_from')
         app.gui.form.elements.f.checked        = params.get('f')
@@ -218,7 +237,7 @@ async function main() {
         app.gui.form.elements.slice_from.value = 0
         app.gui.form.elements.f.checked = false
         app.form_search()
-        update_url(app.gui.form, true)
+        update_url(true)
     }
 
     app.gui.form.onreset = function(evt) {
@@ -227,17 +246,17 @@ async function main() {
         app.gui.form.elements.slice_from.value = 0
         app.gui.form.elements.f.checked = false
         app.form_search()
-        update_url(app.gui.form)
+        update_url()
     }
 
     app.gui.nav.next.onclick = function() {
         app.defs_render_next()
-        update_url(app.gui.form)
+        update_url()
     }
 
     app.gui.nav.prev.onclick = function() {
         app.defs_render_prev()
-        update_url(app.gui.form)
+        update_url()
     }
 
     app.gui.search.onfocus = function() {
@@ -256,7 +275,7 @@ async function main() {
 
         app.gui.form.elements.slice_from.value = 0
         app.defs_view_slice(local_idx, {do_not_scroll_index: true})
-        update_url(app.gui.form)
+        update_url()
     }
 
     app.gui.defs.onclick = function(evt) {
@@ -270,7 +289,7 @@ async function main() {
         app.gui.form.elements.q.value = a.innerText
         app.gui.form.elements.slice_from.value = 0
         app.form_search()
-        update_url(app.gui.form, true)
+        update_url(true)
     }
 
     app.gui.fts.checkbox.onclick = async function() {
@@ -278,9 +297,11 @@ async function main() {
 
         app.gui.fts.dialog.showModal()
         try {
-            let json = await index_fts_fetch('index.json')
+            let json = await efetch(meta.path + '/index.json')
+                .then( r => r.json())
             app.index_fts = lunr.Index.load(json)
         } catch(e) {
+            e.message = `FTS index fetch failed: ${e.message}`
             return show_error(document.querySelector('#status'), e)
         } finally {
             app.gui.fts.dialog.close()
