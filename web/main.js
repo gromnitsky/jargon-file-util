@@ -177,7 +177,8 @@ class App {
         this.gui.status.innerText = `Matched: ${this.terms.length}`
 
         let q = this.gui.form.elements.q.value.trim()
-        if (0 === q.length) return this.about_render()
+        let slice_from = Number(this.gui.form.elements.slice_from.value)
+        if (0 === q.length && slice_from <= 0) return this.about_render()
 
         this.defs_render()
     }
