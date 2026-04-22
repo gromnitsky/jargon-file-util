@@ -41,7 +41,7 @@ function index_fetch(url) {
 }
 
 function gen_id(term, idx) {
-    return 'ge_' + term.trim().replaceAll(/[^A-Za-z0-9_-]+/g, '_') + `_${idx}`
+    return 'ge_' + term.trim().replaceAll(/[^\p{L}\p{N}-]/gu, '_') + `_${idx}`
 }
 
 function show_error(node, e) {

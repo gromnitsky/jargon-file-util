@@ -23,7 +23,7 @@ class Glossentry
     @term = term_parse node
     raise "invalid glossentry: no <glossterm>" unless @term[:term]
 
-    @id = 'ge_' + @term[:term].strip.gsub(/[^A-Za-z0-9_-]+/, '_') + "_#{idx}"
+    @id = 'ge_' + @term[:term].strip.gsub(/[^[:alnum:]-]/, '_') + "_#{idx}"
 
     @defs = node.css('glossdef').map do |d|
       glossentry_to_html d, opt      # in-place
@@ -107,13 +107,14 @@ def mediaobject_to_img node
   desc = node.at_css('caption')&.text&.strip
 
   if imagedata
-    div = Nokogiri::XML::Node.new("div", Nokogiri::XML::Document.new)
+    tmpdoc = Nokogiri::XML::Document.new
+    div = Nokogiri::XML::Node.new("div", tmpdoc)
     if desc
       div.content = "(#{desc})"
       div.prepend_child "<br/>"
     end
 
-    img = Nokogiri::XML::Node.new("img", div)
+    img = Nokogiri::XML::Node.new("img", tmpdoc)
     img['src'] = node.at_css('imagedata')['fileref']
     div.prepend_child img
 

@@ -1,15 +1,16 @@
 out := web/dicts/jargon-file
 SHELL := bash -o pipefail
 
-all: $(addprefix $(out)/, glossentries/ge_zorkmid_2306.html index.txt index.json) web/node_modules/lunr/lunr.min.js
+all: $(addprefix $(out)/, glossentries/.target index.txt index.json) web/node_modules/lunr/lunr.min.js
 
 clean:
 	rm $(out)/index.{txt,json}
 	rm -rf $(out)/glossentries web/node_modules
 
-$(out)/glossentries/ge_zorkmid_2306.html:
+$(out)/glossentries/.target:
 	$(mkdir)
-	./jargon.rb . h | nokogiri -e "$$extract_ge_as_html"
+	./jargon.rb . h | nokogiri -E UTF-8 -e "$$extract_ge_as_html"
+	@touch $@
 
 export define extract_ge_as_html =
 $$_.css('body > div.glossentry').each do |ge|
@@ -23,7 +24,7 @@ $(out)/index.txt:
 
 $(out)/index.json:
 	$(mkdir)
-	./jargon.rb . h | nokogiri -e "$$extract_ge_as_json" | fts/mkindex.js > $@
+	./jargon.rb . h | nokogiri -E UTF-8 -e "$$extract_ge_as_json" | fts/mkindex.js > $@
 
 export define extract_ge_as_json =
 require 'json'
