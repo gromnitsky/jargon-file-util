@@ -76,7 +76,7 @@ class App {
         this.index_fts = null   // loaded separately
 
         this.meta = meta
-        this.GLOSSENTRIES_MAX = meta.options.glossentries_max || 4
+        this.GLOSSENTRIES_MAX = meta?.options?.glossentries_max || 4
     }
 
     form_toggle() {
