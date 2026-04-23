@@ -233,7 +233,7 @@ function dicts_populate_select(dicts, node) {
         o.value = v.name
 
         let info = ['updated', 'languages'].map ( s => v[s]).filter(Boolean)
-        if (info.length) info = ` [${info.join(", ")}]`
+        if (info.length) info = ` [${info.join("; ")}]`
 
         o.innerText = v.name + info
         return o
