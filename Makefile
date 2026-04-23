@@ -7,12 +7,16 @@ all := $(foreach D, $(dicts), $(D)/index.txt $(D)/index.json $(D)/glossentries/.
 all: $(all)
 
 clean:
-	rm -f $(out)/*/index.{txt,json}
+	rm -f $(out)/*/index.{txt,json} $(out)/*/dict.xml.sorted
 	rm -rf $(out)/*/glossentries web/node_modules
 
-jargon = JARGON=$(out)/$*/dict.xml ./jargon.rb
+$(out)/%/dict.xml.sorted: $(out)/%/dict.xml
+	$(mkdir)
+	test/sort.rb < $< > $@
 
-$(out)/%/glossentries/.target: $(out)/%/dict.xml
+jargon = JARGON=$(out)/$*/dict.xml.sorted ./jargon.rb
+
+$(out)/%/glossentries/.target: $(out)/%/dict.xml.sorted
 	$(mkdir)
 	$(jargon) . h | nokogiri -E UTF-8 -e "$$extract_ge_as_html"
 	@touch $@
@@ -23,11 +27,11 @@ $$_.css('body > div.glossentry').each do |ge|
 end
 endef
 
-$(out)/%/index.txt: $(out)/%/dict.xml
+$(out)/%/index.txt: $(out)/%/dict.xml.sorted
 	$(mkdir)
 	$(jargon) . i > $@
 
-$(out)/%/index.json: $(out)/%/dict.xml
+$(out)/%/index.json: $(out)/%/dict.xml.sorted
 	$(mkdir)
 	$(jargon) . h | nokogiri -E UTF-8 -e "$$extract_ge_as_json" | fts/mkindex.js > $@
 

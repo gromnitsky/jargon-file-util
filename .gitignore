@@ -1,6 +1,7 @@
 web/dicts/*/glossentries
 web/dicts/*/index.json
 web/dicts/*/index.txt
+web/dicts/*/dict.xml.sorted
 web/dicts/oiti
 web/node_modules
 fts/node_modules

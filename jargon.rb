@@ -204,6 +204,16 @@ def os_id
   end
 end
 
+def parse_xml s
+  ENV['XML_CATALOG_FILES'] = __dir__ + "/jargon.catalog.#{os_id}.xml"
+  ENV['XML_DEBUG_CATALOG'] = '1' if $VERBOSE
+
+  doc = Nokogiri::XML(s) {|o| o.dtdload.noent }
+  doc.errors.each { |error| puts "libxml2 error: #{error.message}" } if $VERBOSE
+  raise "no <glossentry>" unless doc.at_css('glossentry')
+  doc
+end
+
 def main
   Encoding.default_external = 'utf-8'
 
@@ -230,12 +240,7 @@ def main
   Signal.trap 'SIGINT', sigint_handler
   Signal.trap 'SIGPIPE', sigint_handler
 
-  ENV['XML_CATALOG_FILES'] = __dir__ + "/jargon.catalog.#{os_id}.xml"
-  ENV['XML_DEBUG_CATALOG'] = '1' if $VERBOSE
-
-  doc = Nokogiri::XML(File.read db) {|o| o.dtdload.noent }
-  doc.errors.each { |error| puts "libxml2 error: #{error.message}" } if $VERBOSE
-  abort "#{db}: no <glossentry>" unless doc.at_css('glossentry')
+  doc = parse_xml(File.read db) rescue abort("#{db}: #{$!}")
 
   grep = opt[:mode_full_text] ? :full_text_match : :term_match
   fmt = opt[:mode_indices] ? :term_fmt : :entry_fmt
@@ -253,4 +258,4 @@ def main
   exit status
 end
 
-main unless defined?(Minitest) || defined?(Test)
+main if __FILE__ == $0
