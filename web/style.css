@@ -1,0 +1,158 @@
+:root {
+  --body-fg: #191919;
+  --gap: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --body-fg: #cdcdcd;
+    --body-bg: #1b1b1b;
+  }
+}
+
+html { overflow-y: scroll; }
+
+body {
+  color: var(--body-fg);
+  background: var(--body-bg);
+  font-family: sans-serif;
+}
+
+@media screen and (min-width: 801px) {
+  body {
+    width: 800px;
+    margin: 8px auto;
+  }
+}
+
+.error {
+  background: crimson;
+  color: white;
+  padding: var(--gap);
+}
+
+.glossentry {
+  margin: 1em 0;
+}
+
+.glossterm {
+  display: inline-block;
+
+  .glossterm__term {
+    font-weight: bold;
+    margin-right: 1em;
+    font-size: 120%;
+  }
+
+  .glossterm__pronunciation {
+    font-style: italic;
+    margin-right: 0.5em;
+  }
+}
+
+.glossdef {
+  table {
+    border-collapse: collapse;
+    border: 1px solid;
+  }
+
+  td {
+    border: 1px solid;
+    padding: 3px;
+  }
+
+  pre {
+    padding: 4px;
+    overflow-x: auto;
+    background-color: #fafafa;
+  }
+}
+
+#logo {
+  height: 2rem;
+  display: flex;
+  gap: var(--gap);
+  align-items: center;
+
+  div {
+    font-size: 80%;
+    font-variant: small-caps;
+    text-align: center;
+  }
+  img { height: 100%; }
+}
+
+header {
+  margin-bottom: 1em;
+
+  form fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    #form__row1 {
+      display: flex;
+      gap: var(--gap);
+      align-items: center;
+      justify-content: space-between;
+      height: 2rem;
+    }
+
+    #form__row2 {
+      display: flex;
+      gap: var(--gap);
+      align-items: center;
+
+      input[type="search"] {
+        width: 100%;
+        font-family: monospace;
+      }
+
+      input[type="checkbox"] {
+        margin: 0 0 0 var(--gap);
+      }
+
+      label { white-space: nowrap; }
+    }
+  }
+}
+
+#status {
+  margin: var(--gap) 0;
+}
+
+#index {
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  max-height: 10em;
+  overflow-y: auto;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap);
+
+  a {
+    display: block;
+    text-decoration: none;
+    padding: 0 2px;
+    font-family: monospace;
+  }
+
+  a.rendered {
+    background: blue;
+    color: white;
+  }
+}
+
+nav {
+  margin-top: 1em;
+  padding: 1em 0;
+  border-top: 1px solid;
+
+  button { width: 6em; }
+}
+
+.hidden { display: none; }
+.disabled { color: gray; }
+
+img { max-width: 100% };

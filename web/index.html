@@ -3,162 +3,45 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  :root {
-    --body-fg: #191919;
-    --gap: 4px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --body-fg: #cdcdcd;
-      --body-bg: #1b1b1b;
-    }
-  }
-
-  html { overflow-y: scroll; }
-
-  body {
-    color: var(--body-fg);
-    background: var(--body-bg);
-    font-family: sans-serif;
-  }
-
-  @media screen and (min-width: 801px) {
-    body {
-      width: 800px;
-      margin: 8px auto;
-    }
-  }
-
-  .error {
-    background: crimson;
-    color: white;
-    padding: var(--gap);
-  }
-
-  .glossentry {
-    margin: 1em 0;
-  }
-
-  .glossterm {
-    display: inline-block;
-
-    .glossterm__term {
-      font-weight: bold;
-      margin-right: 1em;
-      font-size: 120%;
-    }
-    .glossterm__pronunciation {
-      font-style: italic;
-      margin-right: 0.5em;
-    }
-  }
-
-  .glossdef {
-    table {
-      border-collapse: collapse;
-      border: 1px solid;
-    }
-    td {
-      border: 1px solid;
-      padding: 3px;
-    }
-    pre {
-      padding: 4px;
-      overflow-x: auto;
-      background-color: #fafafa;
-    }
-  }
-
-  header {
-    margin-bottom: 1em;
-
-    form fieldset {
-      margin: 0;
-      padding: 0;
-      border: 0;
-      display: flex;
-      gap: var(--gap);
-      align-items: center;
-      input[type="search"] {
-        width: 100%;
-        font-family: monospace;
-      }
-      input[type="checkbox"] {
-        margin: 0 0 0 var(--gap);
-      }
-      label { white-space: nowrap; }
-    }
-  }
-
-  #status {
-    margin: var(--gap) 0;
-  }
-
-  #index {
-    border-top: 1px solid;
-    border-bottom: 1px solid;
-    max-height: 10em;
-    overflow-y: auto;
-
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--gap);
-
-    a {
-      display: block;
-      text-decoration: none;
-      padding: 0 2px;
-      font-family: monospace;
-    }
-
-    a.rendered {
-      background: blue;
-      color: white;
-    }
-  }
-
-  nav {
-    margin-top: 1em;
-    padding: 1em 0;
-    border-top: 1px solid;
-
-    button { width: 6em; }
-  }
-
-  .hidden { display: none; }
-  .disabled { color: gray; }
-
-  img { max-width: 100% };
-</style>
+<link rel="stylesheet" href="style.css">
 
 <header>
   <form>
     <fieldset disabled>
-      <input type="reset" value="R" title="Reset">
+      <div id="form__row1">
+        <select name="dict">
+          <option value="">Loading...</option>
+        </select>
+        <div id="logo" aria-hidden="true">
+          <div>Jargon<br>File Util</div>
+          <img src="favicon.svg" alt="">
+        </div>
+      </div>
+      <div id="form__row2">
+        <input type="reset" value="R" title="Reset">
 
-      <input type="checkbox" name="fts" id="form__fts">
-      <label for="form__fts">FTS</label>
+        <input type="checkbox" name="fts" id="form__fts">
+        <label for="form__fts">FTS</label>
 
-      <input type="submit" value="Go">
-      <input type="search" spellcheck="false" name="q">
+        <input type="submit" value="Go">
+        <input type="search" spellcheck="false" name="q">
 
-      <input type="checkbox" name="f" id="form__fixed_string" disabled>
-      <label for="form__fixed_string" class="disabled">grep -F</label>
+        <input type="checkbox" name="f" id="form__fixed_string" disabled>
+        <label for="form__fixed_string" class="disabled">grep -F</label>
 
-      <input type="hidden" name="slice_from">
+        <input type="hidden" name="slice_from">
+      </div>
     </fieldset>
   </form>
   <div id="status">Loading metadata...</div>
   <div id="index"></div>
 </header>
 
-<main></main> <!-- defs -->
+<main></main>
 
 <nav class="hidden">
-  <button id="prev">Previous</button>
-  <button id="next">Next</button>
+  <button id="prev" type="button">Previous</button>
+  <button id="next" type="button">Next</button>
 </nav>
 
 <dialog id="fts_dialog">

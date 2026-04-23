@@ -70,6 +70,7 @@ class App {
                 dialog   : document.querySelector('#fts_dialog'),
             },
             about: document.querySelector('#about'),
+            dict: document.querySelector('header form select'),
         }
         this.index = index
         this.terms = []
@@ -207,32 +208,51 @@ class App {
     }
 }
 
-async function dict_load_metadata() {
+async function dicts_load_metadata() {
     let dicts = await efetch('dicts.json').then( r => r.json())
+
+    // validate
     if ( !(Array.isArray(dicts) && dicts.length > 0))
-        throw new Error('metadata: invalid array')
+        throw new Error('dict: invalid array')
+    dicts.forEach( (cur, idx) => {
+        ['name', 'path'].forEach( v => {
+            if ( !(v in cur)) throw new Error(`dict ${idx}: no ${v} specified`)
+        })
+    })
 
     let params = new URLSearchParams(location.search)
     let cur = dicts?.find( v => params.get('dict') === v.name) || dicts[0]
-    ;['name', 'path'].forEach( v => {
-        if ( !(v in cur)) throw new Error(`metadata: no ${v} specified`)
-    })
     cur.path = `dicts/${cur.path}`
-    return cur
+    return { list: dicts, cur }
+}
+
+function dicts_populate_select(dicts, node) {
+    node.innerHTML = ''
+    node.append(...dicts.list.map( v => {
+        let o = document.createElement('option')
+        o.value = v.name
+
+        let info = ['updated', 'languages'].map ( s => v[s]).filter(Boolean)
+        if (info.length) info = ` [${info.join(", ")}]`
+
+        o.innerText = v.name + info
+        return o
+    }))
 }
 
 async function main() {
-    let meta, index
+    let dicts, index
     try {
-        meta = await dict_load_metadata()
-        index = await index_fetch(meta.path + '/index.txt')
+        dicts = await dicts_load_metadata()
+        index = await index_fetch(dicts.cur.path + '/index.txt')
     } catch (e) {
         return show_error(document.querySelector('#status'), e)
     }
 
-    let app = new App(index, meta)
+    let app = new App(index, dicts.cur)
     app.form_toggle()
     app.gui.form.reset() // otherwise firefox displays 'cached' form values
+    dicts_populate_select(dicts, app.gui.dict)
 
     let update_url = is_push => {
         let u = new URL(location.href)
@@ -242,9 +262,10 @@ async function main() {
         u.searchParams.set('slice_from', form.elements.slice_from.value)
         u.searchParams.set('fts', form.elements.fts.checked ? 1 : '')
         u.searchParams.set('f', form.elements.f.checked ? 1 : '')
+        u.searchParams.set('dict', form.elements.dict.value)
         let op = is_push ? 'pushState' : 'replaceState'
         window.history[op]({}, '', u.toString())
-        document.title = meta.name + (q.length ? ` :: ${q}` : '')
+        document.title = dicts.cur.name + (q.length ? ` :: ${q}` : '')
     }
 
     let url_to_form = is_popstate => {
@@ -260,6 +281,10 @@ async function main() {
             // fetched, and we fetch it only on an explicit user
             // request (a user must click on "FTS" checkbox)
         }
+        // select a dict
+        let d = dicts.list.find(v => v.name === params.get('dict'))
+        d = d ? d.name : dicts.cur.name
+        app.gui.form.elements.dict.value = d
     }
 
     url_to_form()
@@ -329,7 +354,7 @@ async function main() {
 
         app.gui.fts.dialog.showModal()
         try {
-            let json = await efetch(meta.path + '/index.json')
+            let json = await efetch(dicts.cur.path + '/index.json')
                 .then( r => r.json())
             app.index_fts = lunr.Index.load(json)
         } catch(e) {
@@ -338,6 +363,11 @@ async function main() {
         } finally {
             app.gui.fts.dialog.close()
         }
+    }
+
+    app.gui.dict.onchange = function() {
+        update_url(true)
+        location.reload()
     }
 
     app.form_search()

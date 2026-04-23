@@ -3,7 +3,7 @@
         "name": "The Jargon File",
         "description": "The New Hacker's Dictionary",
         "version": "4.4.7",
-        "updated": "2003-12-29T18:13:54.000Z",
+        "updated": "2003-12-29",
         "copyright": "Public domain",
         "languages": ["en"],
         "url": "https://github.com/gromnitsky/jargon-file-util",
@@ -14,7 +14,6 @@
     },
     {
         "name": "Ойті",
-        "version": "0.0.1",
         "updated": "2026-04-22",
         "copyright": "MIT",
         "languages": ["uk", "en"],
