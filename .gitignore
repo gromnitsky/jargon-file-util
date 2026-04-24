@@ -4,4 +4,4 @@ web/dicts/*/index.txt
 web/dicts/*/dict.xml.sorted
 web/dicts/oiti
 web/node_modules
-fts/node_modules
+tools/node_modules

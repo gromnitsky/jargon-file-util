@@ -12,7 +12,7 @@ clean:
 
 $(out)/%/dict.xml.sorted: $(out)/%/dict.xml
 	$(mkdir)
-	test/sort.rb < $< > $@
+	tools/sort.rb < $< > $@
 
 jargon = JARGON=$(out)/$*/dict.xml.sorted ./jargon.rb
 
@@ -33,7 +33,7 @@ $(out)/%/index.txt: $(out)/%/dict.xml.sorted
 
 $(out)/%/index.json: $(out)/%/dict.xml.sorted
 	$(mkdir)
-	$(jargon) . h | nokogiri -E UTF-8 -e "$$extract_ge_as_json" | fts/mkindex.js > $@
+	$(jargon) . h | nokogiri -E UTF-8 -e "$$extract_ge_as_json" | tools/mkindex.js > $@
 
 export define extract_ge_as_json =
 require 'json'
@@ -47,7 +47,7 @@ $$_.css('body > div.glossentry').each_with_index do |ge, idx|
 end
 endef
 
-web/node_modules/%: fts/node_modules/%
+web/node_modules/%: tools/node_modules/%
 	$(mkdir)
 	cp $< $@
 
