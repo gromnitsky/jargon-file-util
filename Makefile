@@ -51,5 +51,8 @@ web/node_modules/%: tools/node_modules/%
 	$(mkdir)
 	cp $< $@
 
+upload: $(all)
+	rsync -Pal web/ alex@sigwait.org:/home/alex/public_html/demo/jargon-file-util/
+
 mkdir = @mkdir -p $(dir $@)
 .DELETE_ON_ERROR:
