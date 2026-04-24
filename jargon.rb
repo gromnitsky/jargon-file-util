@@ -209,7 +209,7 @@ def parse_xml s
   ENV['XML_DEBUG_CATALOG'] = '1' if $VERBOSE
 
   doc = Nokogiri::XML(s) {|o| o.dtdload.noent }
-  doc.errors.each { |error| puts "libxml2 error: #{error.message}" } if $VERBOSE
+  doc.errors.each { |error| warn "libxml2 error: #{error.message}" } if $VERBOSE
   raise "no <glossentry>" unless doc.at_css('glossentry')
   doc
 end
