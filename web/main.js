@@ -246,6 +246,7 @@ async function main() {
         dicts = await dicts_load_metadata()
         index = await index_fetch(dicts.cur.path + '/index.txt')
     } catch (e) {
+        window.addEventListener('popstate', () => location.reload())
         return show_error(document.querySelector('#status'), e)
     }
 
