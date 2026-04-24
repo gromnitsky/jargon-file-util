@@ -1,8 +1,8 @@
-23 sec demo:
+23 sec CLI demo:
 
 [![clip](https://img.youtube.com/vi/o8tMoiRHgog/maxresdefault.jpg)](https://www.youtube.com/watch?v=o8tMoiRHgog)
 
-## Usage
+## CLI Usage
 
 ~~~
 $ jargon
@@ -49,7 +49,7 @@ Provide your own dictionary in the same format as `jargon.xml`:
 
 `MANWIDTH` env var controls the max line length.
 
-## Install
+## CLI Install
 
 Fedora 43:
 
@@ -67,7 +67,7 @@ Debian 13:
 
 See a note about `jargon.xml` if on a non-standard distro or macOS.
 
-## How it works
+## How CLI works
 
 1. Nokogiri converts DocBook into HTML.
 2. `w3m` converts HTML to text.
@@ -75,6 +75,23 @@ See a note about `jargon.xml` if on a non-standard distro or macOS.
    completions.
 
 No XSLT or Java is used for anything.
+
+## Web
+
+Do "CLI Install" section first, then type
+
+    $ cd tools
+    $ npm i
+    $ cd ..
+    $ make
+
+This should generate all that is necessary for the web version.
+
+The web interface requires only a static HTTP server. FTS works via
+loading its `index.json` (~2.1MB uncompressed) on demand.
+
+To add another dictionary in the same XML format as the Jargon File,
+edit `web/dicts.json`.
 
 ## `jargon.xml`
 
