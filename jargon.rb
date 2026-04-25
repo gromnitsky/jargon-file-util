@@ -10,7 +10,8 @@ end
 
 def full_text_match pattern, glossentry
   [glossentry.at_css('glossterm').text,
-   glossentry.at_css('glossdef').text].join("\n").downcase =~ pattern
+   glossentry.css('glossdef').map {|v| v.text}]
+    .flatten.join("\n").downcase =~ pattern
 end
 
 def term_fmt glossentry, _dummy1, _dummy2

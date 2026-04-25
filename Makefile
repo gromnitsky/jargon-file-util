@@ -40,7 +40,7 @@ require 'json'
 $$_.css('body > div.glossentry').each_with_index do |ge, idx|
   entry = {
     term: ge.at_css(".glossterm__term").text,
-    def: ge.at_css('.glossdef').text,
+    def: ge.css('.glossdef').map {|v| v.text}.join("\n"),
     idx: idx
   }
   puts entry.to_json

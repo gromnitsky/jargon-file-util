@@ -88,7 +88,7 @@ Do "CLI Install" section first, then type
 This should generate all that is necessary for the web version.
 
 The web interface requires only a static HTTP server. FTS works via
-loading its `index.json` (~2.1MB uncompressed) on demand.
+loading its `index.json` (~2.6MB uncompressed) on demand.
 
 To add another dictionary in the same XML format as the Jargon File,
 edit `web/dicts.json`.
