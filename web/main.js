@@ -55,7 +55,6 @@ function show_info(node, e) {
     node.classList.add('info')
     node.classList.remove('error')
     node.innerText = e
-    console.error(e)
 }
 
 class App {
@@ -97,7 +96,11 @@ class App {
         if (0 === q.length) return this.index
 
         if (this.index_fts && fts) {
-            let r = this.index_fts.search(q)
+            let r; try {
+                r = this.index_fts.search(q)
+            } catch (_) {
+                throw new Error('fts: invalid query')
+            }
             return r.map( found => this.index[parseInt(found.ref)])
 
         } else {
