@@ -45,10 +45,16 @@ function gen_id(term, idx) {
 }
 
 function show_error(node, e) {
-    let div = document.createElement('div')
-    div.classList.add('error')
-    div.innerText = e
-    node.replaceChildren(div)
+    node.classList.remove('info')
+    node.classList.add('error')
+    node.innerText = e
+    console.error(e)
+}
+
+function show_info(node, e) {
+    node.classList.add('info')
+    node.classList.remove('error')
+    node.innerText = e
     console.error(e)
 }
 
@@ -173,9 +179,13 @@ class App {
     defs_render_next() { this.defs_view_slice(this.GLOSSENTRIES_MAX) }
 
     form_search() {
-        this.terms = this.find()
+        try {
+            this.terms = this.find()
+        } catch (e) {
+            return show_error(this.gui.status, e)
+        }
         this.terms_render()
-        this.gui.status.innerText = `Matched: ${this.terms.length}`
+        show_info(this.gui.status, `Found: ${this.terms.length}`)
 
         let q = this.gui.form.elements.q.value.trim()
         let slice_from = Number(this.gui.form.elements.slice_from.value)

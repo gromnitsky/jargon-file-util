@@ -31,9 +31,9 @@ body {
   padding: var(--gap);
 }
 
-.glossentry {
-  margin: 1em 0;
-}
+.info { padding: var(--gap) 0; }
+
+.glossentry { margin: 1em 0; }
 
 .glossterm {
   display: inline-block;
@@ -126,9 +126,7 @@ header {
   }
 }
 
-#status {
-  margin: var(--gap) 0;
-}
+#status { margin: var(--gap) 0; }
 
 #index {
   border-top: 1px solid;
