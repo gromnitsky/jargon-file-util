@@ -31,9 +31,11 @@ $(out)/%/index.txt: $(out)/%/dict.xml.sorted
 	$(mkdir)
 	$(jargon) . i > $@
 
-$(out)/%/index.json: $(out)/%/dict.xml.sorted
+languages = $(shell jq -r '.[] | select(.path == "$*") | .languages // [] | join(" ")' $<)
+
+$(out)/%/index.json: web/dicts.json $(out)/%/dict.xml.sorted
 	$(mkdir)
-	$(jargon) . h | nokogiri -E UTF-8 -e "$$extract_ge_as_json" | tools/mkindex.js > $@
+	$(jargon) . h | nokogiri -E UTF-8 -e "$$extract_ge_as_json" | tools/mkindex.js $(languages) > $@
 
 export define extract_ge_as_json =
 require 'json'
@@ -53,6 +55,9 @@ web/node_modules/%: tools/node_modules/%
 
 upload: $(all)
 	rsync -Pal web/ alex@sigwait.org:/home/alex/public_html/demo/jargon-file-util/
+
+test:
+	mocha -u tdd tools/mkindex.js
 
 mkdir = @mkdir -p $(dir $@)
 .DELETE_ON_ERROR:

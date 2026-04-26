@@ -1,5 +1,7 @@
 /* global lunr */
 
+import * as languages from './lunr-languages.js'
+
 function efetch(url, opt) {
     let check_for_2xx = r => {
         if (!r.ok) throw new Error(`${url}: ${r.status}`)
@@ -370,6 +372,11 @@ async function main() {
         try {
             let json = await efetch(dicts.cur.path + '/index.json')
                 .then( r => r.json())
+            let non_en_lang = dicts.cur.languages?.filter( v => v !== 'en')
+            if (non_en_lang?.length) {
+                non_en_lang.forEach( v => languages.setup(lunr, v))
+                lunr.multiLanguage('en', ...non_en_lang)
+            }
             app.index_fts = lunr.Index.load(json)
         } catch(e) {
             e.message = `FTS index fetch failed: ${e.message}`
