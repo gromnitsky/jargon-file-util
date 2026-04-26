@@ -6,7 +6,7 @@
         "updated": "2003-12-29",
         "copyright": "Public domain",
         "languages": ["en"],
-        "url": "https://github.com/gromnitsky/jargon-file-util",
+        "url": "http://www.catb.org/jargon/",
         "path": "jargon-file",
         "options": {
             "glossentries_max": 4
