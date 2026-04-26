@@ -5,7 +5,7 @@
   — <cite>The New Hacker's Dictionary</cite>, 3rd edition
 </blockquote>
 
-<table>
+<table class="bordered">
   <tr>
     <td style="width: 7em">Version</td>
     <td>${version}</td>
@@ -32,6 +32,51 @@
   This version of the dictionary is a "re-packaged" variant of Eric
   S. Raymond's <code>jargon.xml</code>. Only <i>Part II, The Jargon
   Lexicon</i> is used here.
+</p>
+
+<h3>How FTS works</h3>
+
+<p>
+  Clicking the <code>FTS</code> checkbox downloads
+  an <i>index</i>. After that, you can search using:
+</p>
+
+<table class="bordered">
+  <thead>
+    <tr>
+      <th style="width: 7em">Query</th>
+      <th>Desc</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>foo bar</td>
+      <td><i>foo</i> <b>OR</b> <i>bar</i></td>
+    </tr>
+    <tr>
+      <td>+foo +bar</td>
+      <td><i>foo</i> <b>AND</b> <i>bar</i></td>
+    </tr>
+    <tr>
+      <td>+foo -bar</td>
+      <td><i>foo</i> <b>AND NOT</b> <i>bar</i></td>
+    </tr>
+    <tr>
+      <td>foo*</td>
+      <td>match words prefixed with <i>foo</i></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  You can't share a link to FTS results, as it would require the user
+  to wait for a potentially large index to download before being able
+  to read anything.
+</p>
+
+<p>
+  Internally, FTS is power by Lunr.js. No server-side code is
+used.
 </p>
 
 <div style="width: 30%; margin: 0 auto;">
