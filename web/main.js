@@ -10,221 +10,437 @@ function efetch(url, opt) {
     return fetch(url, opt).then(check_for_2xx)
 }
 
-function glossentry_append_child(path, id, parent_node) {
-    let url = `${path}/glossentries/${id}.html`
+function fetch_text(u, o) { return efetch(u, o).then(r => r.text()) }
+function fetch_json(u, o) { return efetch(u, o).then(r => r.json()) }
 
-    let spinner = document.createElement('div')
-    spinner.innerText = `Loading ${id}...`
-    parent_node.appendChild(spinner)
-
-    fetch(url).then( r => {
-        if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`)
-        return r.text()
-    }).then( html => {
-        let doc = Document.parseHTMLUnsafe(html)
-        doc.querySelectorAll('img').forEach( node => {
-            node.src = path + '/' + node.src
-        })
-        spinner.replaceWith(doc.querySelector(".glossentry"))
-    }).catch( e => {
-        let div = document.createElement('div')
-        div.classList.add('glossentry', 'error')
-        div.innerText = e
-        spinner.replaceWith(div)
-    })
+function debounce(fn, ms = 20) {
+    let timeout_id
+    return function(...args) {
+        clearTimeout(timeout_id)
+        timeout_id = setTimeout(() => fn.apply(this, args), ms)
+    }
 }
 
-function index_fetch(url) {
-    return efetch(url).then( r => r.text()).then( r => {
-        return r.split("\n").filter(Boolean).map( (v, idx) => {
-            return [v, idx]
-        })
-    })
-}
-
-function gen_id(term, idx) {
-    return 'ge_' + term.trim().replaceAll(/[^\p{L}\p{N}-]/gu, '_') + `_${idx}`
-}
-
-function show_error(node, e) {
-    node.classList.remove('info')
-    node.classList.add('error')
-    node.innerText = e
-    console.error(e)
-}
-
-function show_info(node, e) {
-    node.classList.add('info')
-    node.classList.remove('error')
-    node.innerText = e
-}
-
-class App {
-    constructor(index, meta) {
-        this.gui = {
-            form   : document.querySelector('header form'),
-            search : document.querySelector('header form input[type="search"]'),
-            status : document.querySelector('#status'),
-            index  : document.querySelector('#index'),
-            defs   : document.querySelector('main'),
-            nav: {
-                itself : document.querySelector('nav'),
-                prev   : document.querySelector('#prev'),
-                next   : document.querySelector('#next'),
-            },
-            fts: {
-                checkbox : document.querySelector('#form__fts'),
-                dialog   : document.querySelector('#fts_dialog'),
-            },
-            about: document.querySelector('#about'),
-            dict: document.querySelector('header form select'),
-        }
-        this.index = index
-        this.terms = []
-        this.index_fts = null   // loaded separately
-
-        this.meta = meta
-        this.GLOSSENTRIES_MAX = meta?.options?.glossentries_max || 4
+class Glossentry {
+    constructor(dict, idx, parent_node) {
+        this.state = { idx }
+        this.dict = dict
+        this.parent_node = parent_node
+        this.fetch_abort_ctrl = null
     }
 
-    form_toggle() {
-        let fieldset = this.gui.form.querySelector('fieldset')
-        fieldset.disabled = !fieldset.disabled
-    }
-
-    find() {
-        let q = this.gui.form.elements.q.value.trim()
-        let fts = this.gui.form.elements.fts.checked
-        if (0 === q.length) return this.index
-
-        if (this.index_fts && fts) {
-            let r; try {
-                r = this.index_fts.search(q)
-            } catch (_) {
-                throw new Error('fts: invalid query')
-            }
-            return r.map( found => this.index[parseInt(found.ref)])
-
-        } else {
-            let simple = v => v[0] === q
-            let regex  = v => {
-                let pattern = new RegExp(q, 'i')
-                return pattern.test(v[0].toLowerCase())
-            }
-
-            let fixed_string = this.gui.form.elements.f.checked
-            let grep = fixed_string ? simple : regex
-            return this.index.filter( v => grep(v))
+    set idx(value) {
+        if (this.state.idx !== value) {
+            this.state.idx = value
+            this.render()
         }
     }
 
-    terms_render() {
-        let anchors = this.terms.map( v => {
+    name() {
+        let term = this.dict.index[this.state.idx]
+        if (!term) throw new Error(`invalid idx: ${this.state.idx}`)
+        return 'ge_' + term.trim().replaceAll(/[^\p{L}\p{N}-]/gu, '_') +
+            `_${this.state.idx}`
+    }
+
+    render() {
+        this.fetch_abort_ctrl?.abort()
+
+        let error = e => {
+            let div = document.createElement('div')
+            div.classList.add('error')
+            div.innerText = e
+            return div
+        }
+
+        let url; try {
+            url = `${this.dict.path}/glossentries/${this.name()}.html`
+        } catch (e) {
+            return this.parent_node.replaceChildren(error(e))
+        }
+
+        let spinner = document.createElement('div')
+        spinner.classList.add('spinner')
+        spinner.innerText = `Loading ${this.name()}...`
+        this.parent_node.replaceChildren(spinner)
+
+        this.fetch_abort_ctrl = new AbortController()
+        fetch_text(url, {signal: this.fetch_abort_ctrl.signal}).then( html => {
+            let doc = Document.parseHTMLUnsafe(html)
+            // correct external resources
+            doc.querySelectorAll('img').forEach( img => {
+                if (/^https?:/.test(img.src)) return
+                img.loading = 'lazy'
+                img.src = this.dict.path + '/' + img.src
+            })
+            doc.querySelectorAll('a').forEach( a => {
+                // FIXME: parse url
+                if (/^https?:/.test(a.href)) return
+                a.href = a.href + '&dict=' + this.dict.name
+            })
+            let ge = doc.querySelector(".glossentry")
+            ge.dataset.idx = this.state.idx
+            spinner.replaceWith(ge)
+
+        }).catch( e => {
+            spinner.replaceWith(error(e))
+
+        }).finally( () => {
+            delete this.fetch_abort_ctrl
+        })
+    }
+}
+
+class Glossentries {
+    constructor(dict, parent_node) {
+        this.dict = dict
+        this.state = { list: [], render_from: 0 }
+        this.parent_node = parent_node
+        let length = dict.options?.glossentries_max || 4
+
+        let slots = Array.from({ length }).map( () => {
+            return document.createElement('div')
+        })
+        this.defs = slots.map( slot => new Glossentry(dict, -1, slot))
+        this.parent_node.replaceChildren(...slots)
+
+        this.render_later = debounce(this.render)
+    }
+
+    set list(value) {
+        let a = JSON.stringify(this.state.list)
+        let b = JSON.stringify(value)
+        if (a !== b) {
+            this.state.list = value
+            this.state.render_from = 0
+            this.render_later()
+        }
+    }
+
+    set render_from(value) {
+        value = Number(value)
+        if (this.state.render_from !== value) {
+            this.state.render_from = value
+            this.render_later()
+        }
+    }
+
+    render() {
+        let list_idx = this.state.render_from
+        let list_entry = i => this.state.list[i]
+
+        this.defs.forEach( (ge, ge_idx) => {
+            if (this.dict.index[list_entry(list_idx)] == null
+                || ge_idx >= this.state.list.length) {
+                ge.parent_node.classList.add('hidden')
+            } else {
+                ge.parent_node.classList.remove('hidden')
+                ge.idx = list_entry(list_idx)
+            }
+            list_idx++
+        })
+    }
+}
+
+class Index {
+    constructor(dict, parent_node) {
+        this.state = {
+            list: [],
+            highlight_from: 0,
+        }
+        this.dict = dict
+        this.parent_node = parent_node
+
+        this.render_later = debounce(this.render)
+        this.highlight_later = debounce(this.highlight)
+    }
+
+    set list(value) {
+        let upd = () => {
+            this.state.list = value
+            this.state.highlight_from = 0
+            this.render_later()
+        }
+        if (this.state.list.length !== value.length) {
+            upd()
+            return
+        }
+        let a = JSON.stringify(this.state.list)
+        let b = JSON.stringify(value)
+        if (a !== b) upd()
+    }
+
+    set highlight_from(value) {
+        value = Number(value)
+        if (this.state.highlight_from !== value) {
+            this.state.highlight_from = value
+            this.highlight_later()
+        }
+    }
+
+    render() {
+        let anchors = this.state.list.map( idx => {
+            let term = this.dict.index[idx]
             let a = document.createElement('a')
-            a.innerHTML = v[0]
-            a.dataset.orig_idx = v[1]
+            a.innerText = term
             let params = new URLSearchParams()
-            params.set('q', v[0])
-            params.set('f', 1)
+            params.set('q', term)
+            params.set('t', 'exact')
+            params.set('dict', this.dict.name)
             a.href = '?' + params.toString()
             return a
         })
-        this.gui.index.replaceChildren(...anchors)
+        this.parent_node.replaceChildren(...anchors)
+        this.highlight_later()
     }
 
-    terms_highlight(start, end, opt = {}) {
-        this.gui.index.querySelectorAll('a.rendered').forEach( node => {
-            node.classList.remove('rendered')
+    highlight() {
+        this.parent_node.querySelectorAll('a.highlighted').forEach( a => {
+            a.classList.remove('highlighted')
         })
-        let idx_nodes = this.gui.index.children
+        let a = this.parent_node.children
+        let start = this.state.highlight_from
+        let end = start + (this.dict.options?.glossentries_max || 4)
         for (let i = start; i < end; ++i) {
-            if (!idx_nodes[i]) break
-            idx_nodes[i].classList.add('rendered')
+            if (!a[i]) break
+            a[i].classList.add('highlighted')
         }
-        if (!opt.do_not_scroll_index)
-            idx_nodes[start].scrollIntoView({block: "center", container: "nearest"})
-    }
-
-    defs_render(opt) {
-        this.gui.defs.innerHTML = ''
-        this.gui.nav.itself.classList.add('hidden')
-        this.gui.nav.prev.disabled = true
-        this.gui.nav.next.disabled = true
-        if (!this.terms.length) return
-
-        let slice_from = Number(this.gui.form.elements.slice_from.value)
-        if (slice_from > this.terms.length)
-            slice_from = this.terms.length - this.GLOSSENTRIES_MAX
-        let start = slice_from < 0 ? 0 : slice_from
-        let end = start + this.GLOSSENTRIES_MAX
-//        console.log(start, end)
-
-        this.terms_highlight(start, end, opt)
-
-        this.terms.slice(start, end).forEach( v => {
-            glossentry_append_child(this.meta.path,
-                                    gen_id(v[0], v[1]), this.gui.defs)
-        })
-
-        this.gui.nav.itself.classList.remove('hidden')
-        if (start > 0) this.gui.nav.prev.disabled = false
-        if (end < this.terms.length) this.gui.nav.next.disabled = false
-    }
-
-    defs_view_slice(step, opt) {
-        let slice_from = Number(this.gui.form.elements.slice_from.value)
-        if (slice_from > this.terms.length)
-            slice_from = this.terms.length - this.GLOSSENTRIES_MAX
-        let start = (slice_from < 0 ? 0 : slice_from) + step
-        this.gui.form.elements.slice_from.value = start
-        this.defs_render(opt)
-    }
-
-    defs_render_prev() { this.defs_view_slice(-this.GLOSSENTRIES_MAX) }
-    defs_render_next() { this.defs_view_slice(this.GLOSSENTRIES_MAX) }
-
-    form_search() {
-        try {
-            this.terms = this.find()
-        } catch (e) {
-            return show_error(this.gui.status, e)
-        }
-        this.terms_render()
-        show_info(this.gui.status, `Found: ${this.terms.length}`)
-
-        let q = this.gui.form.elements.q.value.trim()
-        let slice_from = Number(this.gui.form.elements.slice_from.value)
-        if (0 === q.length && slice_from <= 0) return this.about_render()
-
-        this.defs_render()
-    }
-
-    about_render() {
-        let str = (template, obj) => {
-            return template.replace(/\$\{(\w+)\}/g, (match, key) =>
-                (key in obj) ? obj[key] : ''
-            )
-        }
-
-        this.gui.defs.innerHTML = ''
-        this.gui.nav.itself.classList.add('hidden')
-
-        let spinner = document.createElement('div')
-        spinner.innerText = `Loading about page...`
-        this.gui.defs.appendChild(spinner)
-
-        efetch(this.meta.path + '/about.html').then( r => r.text())
-            .then( html => {
-                let div = document.createElement('div')
-                div.classList.add('about')
-                div.innerHTML = str(html, this.meta)
-                spinner.replaceWith(div)
-            })
+        a[start]?.scrollIntoView({block: "center", container: "nearest"})
     }
 }
 
-async function dicts_load_metadata() {
-    let dicts = await efetch('dicts.json').then( r => r.json())
+function index_fetch(url) {
+    return fetch_text(url).then( r => r.split("\n").filter(Boolean))
+}
+
+function search(dict, query = '', type = 'regex') {
+    if (query.length === 0) return dict.index.map( (_, idx) => idx)
+
+    type = ['exact', 'regex', 'fts'].includes(type) ? type : 'regex'
+
+    if (type === 'fts') {
+        if (!dict.index_fts) throw new Error('fts: no index')
+        let r; try {
+            r = dict.index_fts.search(query)
+        } catch (_) {
+            throw new Error('fts: invalid query')
+        }
+        return r.map( found => parseInt(found.ref))
+
+    } else if (type === 'exact') {
+        let r = dict.index.findIndex( v => v === query)
+        return r === -1 ? [] : [r]
+    }
+
+    let pattern = new RegExp(query, 'i')
+    return dict.index.reduce( (acc, val, idx) => {
+        if (pattern.test(val)) acc.push(idx);
+        return acc;
+    }, [])
+}
+
+class Status {
+    constructor(parent_node) {
+        this.state = { message: '', type: 'info' }
+        this.parent_node = parent_node
+        this.render_later = debounce(this.render)
+    }
+
+    set_prop(prop, value) {
+        if (this.state[prop] !== value) {
+            this.state[prop] = value
+            this.render_later()
+        }
+    }
+
+    set message(value) { this.set_prop('message', value) }
+    set type(value) { this.set_prop('type', value) }
+
+    render() {
+        if (this.state.type === 'error') {
+            this.parent_node.classList.remove('info')
+            this.parent_node.classList.add('error')
+            console.error(this.state.message)
+        } else {
+            this.parent_node.classList.remove('error')
+            this.parent_node.classList.add('info')
+        }
+        this.parent_node.innerText = this.state.message
+    }
+}
+
+class Form {
+    constructor(dicts, node) {
+        this.dicts = dicts
+        this.form = node
+        this.populate_dict()
+        this.url_to_state()
+        node.querySelector('fieldset').disabled = false
+    }
+
+    url_to_state() {
+        let params = new URLSearchParams(location.search)
+        this.query = params.get('q')
+        this.type = params.get('t')
+        this.render_from = params.get('render_from')
+        this.dict = params.get('dict')
+    }
+
+    state_to_url() {
+        let u = new URL(location.href)
+        u.searchParams.set('q', this.query)
+        u.searchParams.set('t', this.type)
+        u.searchParams.set('render_from', this.render_from)
+        u.searchParams.set('dict', this.dict)
+        window.history.pushState({}, '', u.toString())
+    }
+
+    populate_dict() {
+        let node = this.form.elements.dict
+        node.innerHTML = ''
+        node.append(...this.dicts.map( v => {
+            let o = document.createElement('option')
+            o.value = v.name
+
+            let info = ['updated', 'languages'].map ( s => v[s]).filter(Boolean)
+            if (info.length) info = ` [${info.join("; ")}]`
+
+            o.innerText = v.name + info
+            return o
+        }))
+    }
+
+    set query(value) { this.form.elements.query.value = value }
+    get query() { return this.form.elements.query.value }
+
+    set type(value) {
+        value = ['exact', 'regex', 'fts'].includes(value) ? value : 'regex'
+        this.form.elements.type.value = value
+    }
+    get type() { return this.form.elements.type.value }
+
+    set render_from(value) {
+        value = Number(value)
+        if (value < 0 || isNaN(value)) value = 0
+        this.form.elements.render_from.value = value
+    }
+    get render_from() { return Number(this.form.elements.render_from.value) }
+
+    set dict(value) {
+        let def = this.dicts[0].name
+        value = this.dicts.map( d => d.name).includes(value) ? value : def
+        this.form.elements.dict.value = value
+    }
+    get dict() { return this.form.elements.dict.value }
+}
+
+class App {
+    constructor(dict, gui) {
+        this.dict = dict
+        this.gui = gui
+
+        this.gui.form.form.onsubmit = this.onsubmit.bind(this)
+        this.gui.form.form.onreset = this.onreset.bind(this)
+        this.gui.form.form.elements.dict.onchange = this.ondict.bind(this)
+        this.gui.form.form.elements.type.onchange = this.ontype.bind(this)
+        this.gui.ges.parent_node.onclick = this.ges_onclick.bind(this)
+        this.gui.index.parent_node.onclick = this.index_onlick.bind(this)
+        window.addEventListener('popstate', this.onpopstate.bind(this))
+    }
+
+    index_onlick(evt) {
+        let a = evt.target
+        if (a.tagName !== 'A') return
+        evt.preventDefault()
+
+        let anchors = Array.from(a.parentElement.children)
+        let idx = anchors.indexOf(a)
+        this.gui.index.highlight_from = idx
+        this.gui.ges.render_from = idx
+        this.gui.form.render_from = idx
+        this.gui.form.state_to_url()
+    }
+
+    ges_onclick(evt) {
+        let a = evt.target
+        if (a.tagName !== 'A') return
+        if (!a.classList.contains('glossterm_link')) return
+        evt.preventDefault()
+
+        this.gui.form.type = 'exact'
+        this.gui.form.query = a.innerText
+        this.gui.form.render_from = 0
+        this.search()
+    }
+
+    search(save_state_to_url = true) {
+        let indices; try {
+            indices = search(this.dict, this.gui.form.query, this.gui.form.type)
+            this.gui.status.type = 'info'
+            this.gui.status.message = `Found: ${indices.length}`
+        } catch (e) {
+            this.gui.status.type = 'error'
+            this.gui.status.message = e
+            indices = []
+        }
+
+        this.gui.index.list = indices
+        this.gui.index.highlight_from = this.gui.form.render_from
+        this.gui.ges.list = indices
+        this.gui.ges.render_from = this.gui.form.render_from
+
+        if (save_state_to_url) this.gui.form.state_to_url()
+    }
+
+    async ontype() {
+        if (this.gui.form.type !== 'fts') return
+        if (this.dict.index_fts) return
+
+        this.gui.fts_dialog.showModal()
+        try {
+            let json = await fetch_json(this.dict.path + '/index.json')
+            let non_en_lang = this.dict.languages?.filter( v => v !== 'en')
+            if (non_en_lang?.length) {
+                non_en_lang.forEach( v => languages.setup(lunr, v))
+                lunr.multiLanguage('en', ...non_en_lang)
+            }
+            this.dict.index_fts = lunr.Index.load(json)
+        } catch(e) {
+            e.message = `FTS index fetch failed: ${e.message}`
+            this.gui.status.type = 'error'
+            this.gui.status.message = e
+        } finally {
+            this.gui.fts_dialog.close()
+        }
+    }
+
+    ondict() {
+        this.gui.form.state_to_url()
+        location.reload()
+    }
+
+    onpopstate() {
+        this.gui.form.url_to_state()
+        this.search()
+    }
+
+    onsubmit(evt) {
+        evt.preventDefault()
+        this.gui.form.render_from = 0
+        this.search()
+    }
+
+    onreset(evt) {
+        evt.preventDefault()
+        this.gui.form.query = ''
+        this.gui.form.type = 'regex'
+        this.gui.form.render_from = 0
+        this.search()
+    }
+}
+
+async function dicts_load() {
+    let dicts = await fetch_json('dicts.json')
 
     // validate
     if ( !(Array.isArray(dicts) && dicts.length > 0))
@@ -235,168 +451,40 @@ async function dicts_load_metadata() {
         })
     })
 
-    let params = new URLSearchParams(location.search)
-    let cur = dicts?.find( v => params.get('dict') === v.name) || dicts[0]
-    cur.path = `dicts/${cur.path}`
-    return { list: dicts, cur }
-}
-
-function dicts_populate_select(dicts, node) {
-    node.innerHTML = ''
-    node.append(...dicts.list.map( v => {
-        let o = document.createElement('option')
-        o.value = v.name
-
-        let info = ['updated', 'languages'].map ( s => v[s]).filter(Boolean)
-        if (info.length) info = ` [${info.join("; ")}]`
-
-        o.innerText = v.name + info
-        return o
-    }))
+    return dicts
 }
 
 async function main() {
-    let dicts, index
-    try {
-        dicts = await dicts_load_metadata()
-        index = await index_fetch(dicts.cur.path + '/index.txt')
-    } catch (e) {
+    let gui = {
+        status: new Status(document.querySelector('#status')),
+        fts_dialog: document.querySelector('#fts_dialog')
+    }
+
+    let early_error = e => {
         window.addEventListener('popstate', () => location.reload())
-        return show_error(document.querySelector('#status'), e)
+        gui.status.type = 'error'
+        gui.status.message = e
     }
 
-    let app = new App(index, dicts.cur)
-    app.form_toggle()
-    app.gui.form.reset() // otherwise firefox displays 'cached' form values
-    dicts_populate_select(dicts, app.gui.dict)
-
-    let update_url = is_push => {
-        let u = new URL(location.href)
-        let form = app.gui.form
-        let q = form.elements.q.value
-        u.searchParams.set('q', q)
-        u.searchParams.set('slice_from', form.elements.slice_from.value)
-        u.searchParams.set('fts', form.elements.fts.checked ? 1 : '')
-        u.searchParams.set('f', form.elements.f.checked ? 1 : '')
-        u.searchParams.set('dict', form.elements.dict.value)
-        let op = is_push ? 'pushState' : 'replaceState'
-        window.history[op]({}, '', u.toString())
-        document.title = dicts.cur.name + (q.length ? ` :: ${q}` : '')
+    let dicts; try {
+        dicts = await dicts_load()
+    } catch (e) {
+        return early_error(e)
     }
 
-    let url_to_form = is_popstate => {
-        let params = new URLSearchParams(location.search)
-        app.gui.form.elements.q.value          = params.get('q')
-        app.gui.form.elements.slice_from.value = params.get('slice_from')
-        app.gui.form.elements.f.checked        = params.get('f')
-        if (is_popstate) {
-            app.gui.form.elements.fts.checked = params.get('fts')
-        } else {
-            // no `app.gui.form.elements.fts` here, for we can't do an
-            // FTS query before a (potentially) huge index.json is
-            // fetched, and we fetch it only on an explicit user
-            // request (a user must click on "FTS" checkbox)
-        }
-        // select a dict
-        let d = dicts.list.find(v => v.name === params.get('dict'))
-        d = d ? d.name : dicts.cur.name
-        app.gui.form.elements.dict.value = d
+    gui.form = new Form(dicts, document.querySelector('form'))
+    let dict = dicts.find( v => v.name === gui.form.dict)
+    try {
+        dict.index = await index_fetch(dict.path + '/index.txt')
+    } catch (e) {
+        return early_error(e)
     }
 
-    url_to_form()
+    gui.index =  new Index(dict, document.querySelector('#index'))
+    gui.ges = new Glossentries(dict, document.querySelector('main'))
 
-    app.gui.form.onsubmit = function(evt) {
-        evt.preventDefault()
-        app.gui.form.elements.slice_from.value = 0
-        app.gui.form.elements.f.checked = false
-        app.form_search()
-        update_url(true)
-    }
-
-    app.gui.form.onreset = function(evt) {
-        evt.preventDefault()
-        app.gui.form.elements.q.value = ''
-        app.gui.form.elements.slice_from.value = 0
-        app.gui.form.elements.f.checked = false
-        app.form_search()
-        update_url()
-    }
-
-    app.gui.nav.next.onclick = function() {
-        app.defs_render_next()
-        update_url()
-    }
-
-    app.gui.nav.prev.onclick = function() {
-        app.defs_render_prev()
-        update_url()
-    }
-
-    app.gui.search.onfocus = function() {
-        app.gui.form.elements.f.checked = false
-    }
-
-    app.gui.index.onclick = function(evt) {
-        let a = evt.target
-        if (a.tagName !== 'A') return
-        evt.preventDefault()
-
-        let anchors = a.parentElement.children
-        let orig_idx = a.dataset.orig_idx
-        let local_idx = Array.from(anchors)
-            .findIndex( v => v.dataset.orig_idx === orig_idx)
-
-        app.gui.form.elements.slice_from.value = 0
-        app.defs_view_slice(local_idx, {do_not_scroll_index: true})
-        update_url()
-    }
-
-    app.gui.defs.onclick = function(evt) {
-        let a = evt.target
-        if (a.tagName !== 'A') return
-        if (!a.classList.contains('glossterm_link')) return
-        evt.preventDefault()
-
-        app.gui.form.elements.f.checked = true
-        app.gui.form.elements.fts.checked = false
-        app.gui.form.elements.q.value = a.innerText
-        app.gui.form.elements.slice_from.value = 0
-        app.form_search()
-        update_url(true)
-    }
-
-    app.gui.fts.checkbox.onclick = async function() {
-        if (app.index_fts) return
-
-        app.gui.fts.dialog.showModal()
-        try {
-            let json = await efetch(dicts.cur.path + '/index.json')
-                .then( r => r.json())
-            let non_en_lang = dicts.cur.languages?.filter( v => v !== 'en')
-            if (non_en_lang?.length) {
-                non_en_lang.forEach( v => languages.setup(lunr, v))
-                lunr.multiLanguage('en', ...non_en_lang)
-            }
-            app.index_fts = lunr.Index.load(json)
-        } catch(e) {
-            e.message = `FTS index fetch failed: ${e.message}`
-            return show_error(document.querySelector('#status'), e)
-        } finally {
-            app.gui.fts.dialog.close()
-        }
-    }
-
-    app.gui.dict.onchange = function() {
-        update_url(true)
-        location.reload()
-    }
-
-    app.form_search()
-
-    window.addEventListener('popstate', function() {
-        url_to_form(true)
-        app.form_search()
-    })
+    let app = new App(dict, gui)
+    app.search(false)
 }
 
 main()

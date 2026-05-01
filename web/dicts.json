@@ -7,7 +7,7 @@
         "copyright": "Public domain",
         "languages": ["en"],
         "url": "http://www.catb.org/jargon/",
-        "path": "jargon-file",
+        "path": "dicts/jargon-file",
         "options": {
             "glossentries_max": 4
         }
@@ -17,6 +17,6 @@
         "updated": "2026-04-22",
         "copyright": "MIT",
         "languages": ["uk", "en"],
-        "path": "oiti"
+        "path": "dicts/oiti"
     }
 ]

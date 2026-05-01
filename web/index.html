@@ -5,37 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="style.css">
 
-<header>
-  <form>
-    <fieldset disabled>
-      <div id="form__row1">
-        <select name="dict">
-          <option value="">Loading...</option>
-        </select>
-        <div id="logo" aria-hidden="true">
-          <div>Jargon<br>File Util</div>
-          <img src="favicon.svg" alt="">
-        </div>
+<form>
+  <fieldset disabled>
+
+    <div>
+      <select name="dict">
+        <option value="">Loading...</option>
+      </select>
+      <div id="logo" aria-hidden="true">
+        <div>Jargon<br>File Util</div>
+        <img src="favicon.svg" alt="">
       </div>
-      <div id="form__row2">
-        <input type="reset" value="R" title="Reset">
+    </div>
 
-        <input type="checkbox" name="fts" id="form__fts">
-        <label for="form__fts">FTS</label>
+    <div>
+      <input type="reset" value="∅">
+      <select name="type">
+        <option value="regex">Regex</option>
+        <option value="exact">Exact</option>
+        <option value="fts">FTS</option>
+      </select>
+      <input type="submit" value="Go">
+      <input type="search" spellcheck="false" name="query">
+      <input type="hidden" name="render_from">
+    </div>
 
-        <input type="submit" value="Go">
-        <input type="search" spellcheck="false" name="q">
+  </fieldset>
+</form>
 
-        <input type="checkbox" name="f" id="form__fixed_string" disabled>
-        <label for="form__fixed_string" class="disabled">grep -F</label>
-
-        <input type="hidden" name="slice_from">
-      </div>
-    </fieldset>
-  </form>
-  <div id="status">Loading metadata...</div>
-  <div id="index"></div>
-</header>
+<div id="status" class="info">Loading metadata...</div>
+<div id="index"></div>
 
 <main></main>
 

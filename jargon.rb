@@ -91,7 +91,7 @@ def glossterm_to_text node
 end
 
 def glossterm_to_a node
-  params = { "f" => "1", "q" => node.text.gsub(/\s+/, ' ') }
+  params = { "t" => "exact", "q" => node.text.gsub(/\s+/, ' ') }
   node["href"] = '?' + URI.encode_www_form(params)
   node.name = 'a'
   node.add_class 'glossterm_link'
