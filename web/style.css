@@ -67,6 +67,7 @@ body {
   border-bottom: 1px solid;
   max-height: 10em;
   overflow-y: auto;
+  margin-bottom: 1em;
 
   display: grid;
   grid-template-columns: repeat(3, 1fr);

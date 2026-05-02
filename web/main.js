@@ -362,7 +362,7 @@ class Form {
         u.searchParams.set('t', this.type)
         u.searchParams.set('render_from', this.render_from)
         u.searchParams.set('dict', this.dict)
-        window.history.pushState({}, '', u.toString())
+        window.history.pushState({dict: this.dict}, '', u.toString())
     }
 
     populate_dict() {
@@ -507,7 +507,9 @@ class App {
         location.reload()
     }
 
-    onpopstate() {
+    onpopstate(evt) {
+        if (evt.state.dict
+            && evt.state.dict !== this.dict.name) return location.reload()
         this.gui.form.url_to_state()
         this.search()
     }
