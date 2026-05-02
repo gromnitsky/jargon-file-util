@@ -96,9 +96,9 @@ class Glossentries {
         this.dict = dict
         this.state = { list: [], render_from: 0 }
         this.parent_node = parent_node
-        let length = dict.options?.glossentries_max || 4
+        this.glossentries_max = dict.options?.glossentries_max || 4
 
-        let slots = Array.from({ length }).map( () => {
+        let slots = Array.from({ length: this.glossentries_max }).map( () => {
             return document.createElement('div')
         })
         this.defs = slots.map( slot => new Glossentry(dict, -1, slot))
@@ -119,6 +119,7 @@ class Glossentries {
 
     set render_from(value) {
         value = Number(value)
+        if (value < 0) value = 0
         if (this.state.render_from !== value) {
             this.state.render_from = value
             this.render_later()
@@ -172,6 +173,7 @@ class Index {
 
     set highlight_from(value) {
         value = Number(value)
+        if (value < 0) value = 0
         if (this.state.highlight_from !== value) {
             this.state.highlight_from = value
             this.highlight_later()
@@ -269,6 +271,30 @@ class Status {
     }
 }
 
+class Navigator {
+    constructor(ges, parent_node) {
+        this.ges = ges
+        this.parent_node = parent_node
+
+        this.btn_prev = this.parent_node.querySelector('#prev')
+        this.btn_next = this.parent_node.querySelector('#next')
+        this.render()
+    }
+
+    get prev() { return this.ges.state.render_from !== 0 }
+    get next() {
+        return (this.ges.state.list.length - this.ges.state.render_from) >
+            this.ges.glossentries_max
+    }
+
+    render() {
+        this.btn_prev.disabled = !this.prev
+        this.btn_next.disabled = !this.next
+        let op = (this.prev || this.next) ? 'remove' : 'add'
+        this.parent_node.classList[op]('hidden')
+    }
+}
+
 class Form {
     constructor(dicts, node) {
         this.dicts = dicts
@@ -345,6 +371,8 @@ class App {
         this.gui.form.form.elements.type.onchange = this.ontype.bind(this)
         this.gui.ges.parent_node.onclick = this.ges_onclick.bind(this)
         this.gui.index.parent_node.onclick = this.index_onlick.bind(this)
+        this.gui.nav.btn_prev.onclick = this.nav_onclink.bind(this, true)
+        this.gui.nav.btn_next.onclick = this.nav_onclink.bind(this, false)
         window.addEventListener('popstate', this.onpopstate.bind(this))
     }
 
@@ -358,7 +386,18 @@ class App {
         this.gui.index.highlight_from = idx
         this.gui.ges.render_from = idx
         this.gui.form.render_from = idx
+        this.gui.nav.render()
         this.gui.form.state_to_url()
+    }
+
+    nav_onclink(prev) {
+        let render_from = this.gui.ges.state.render_from
+        let step = this.gui.ges.glossentries_max
+        if (prev) step *= -1
+        let index_anchors = this.gui.index.parent_node.children
+        let idx = render_from + step
+        if (idx < 0) idx = 0
+        index_anchors[idx].click()
     }
 
     ges_onclick(evt) {
@@ -388,6 +427,7 @@ class App {
         this.gui.index.highlight_from = this.gui.form.render_from
         this.gui.ges.list = indices
         this.gui.ges.render_from = this.gui.form.render_from
+        this.gui.nav.render()
 
         if (save_state_to_url) this.gui.form.state_to_url()
     }
@@ -482,6 +522,7 @@ async function main() {
 
     gui.index =  new Index(dict, document.querySelector('#index'))
     gui.ges = new Glossentries(dict, document.querySelector('main'))
+    gui.nav = new Navigator(gui.ges, document.querySelector('nav'))
 
     let app = new App(dict, gui)
     app.search(false)
