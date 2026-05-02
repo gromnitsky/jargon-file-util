@@ -120,6 +120,7 @@ class Glossentries {
     set render_from(value) {
         value = Number(value)
         if (value < 0) value = 0
+        if (value >= this.state.list.length) value = this.state.list.length-1
         if (this.state.render_from !== value) {
             this.state.render_from = value
             this.render_later()
@@ -174,6 +175,7 @@ class Index {
     set highlight_from(value) {
         value = Number(value)
         if (value < 0) value = 0
+        if (value >= this.state.list.length) value = this.state.list.length-1
         if (this.state.highlight_from !== value) {
             this.state.highlight_from = value
             this.highlight_later()
@@ -281,7 +283,7 @@ class Navigator {
         this.render()
     }
 
-    get prev() { return this.ges.state.render_from !== 0 }
+    get prev() { return this.ges.state.render_from > 0 }
     get next() {
         return (this.ges.state.list.length - this.ges.state.render_from) >
             this.ges.glossentries_max
