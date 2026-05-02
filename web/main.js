@@ -74,9 +74,10 @@ class Glossentry {
                 img.src = this.dict.path + '/' + img.src
             })
             doc.querySelectorAll('a').forEach( a => {
-                // FIXME: parse url
                 if (/^https?:/.test(a.href)) return
-                a.href = a.href + '&dict=' + this.dict.name
+                let url = new URL(a.href, 'http://example.com')
+                url.searchParams.set('dict', this.dict.name)
+                a.href = '?'+url.searchParams.toString()
             })
             let ge = doc.querySelector(".glossentry")
             ge.dataset.idx = this.state.idx
@@ -363,6 +364,8 @@ class Form {
         u.searchParams.set('render_from', this.render_from)
         u.searchParams.set('dict', this.dict)
         window.history.pushState({dict: this.dict}, '', u.toString())
+        let s = this.query ? `:: ${this.query} :: ${this.render_from}` : ''
+        document.title = `${this.dict}${s}`
     }
 
     populate_dict() {
