@@ -31,7 +31,7 @@ $(out)/%/index.txt: $(out)/%/dict.xml.sorted
 	$(mkdir)
 	$(jargon) . i > $@
 
-languages = $(shell jq -r '.[] | select(.path == "$*") | .languages // [] | join(" ")' $<)
+languages = $(shell jq -r '.[] | select(.path == "dicts/$*") | .languages // [] | join(" ")' $<)
 
 $(out)/%/index.json: web/dicts.json $(out)/%/dict.xml.sorted
 	$(mkdir)
