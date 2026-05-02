@@ -54,7 +54,7 @@ web/node_modules/%: tools/node_modules/%
 	cp $< $@
 
 upload: $(all)
-	rsync -Pal web/ alex@sigwait.org:/home/alex/public_html/demo/jargon-file-util/
+	rsync -Pal --delete web/ alex@sigwait.org:/home/alex/public_html/demo/jargon-file-util/
 
 test:
 	mocha -u tdd tools/mkindex.js
