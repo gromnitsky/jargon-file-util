@@ -297,6 +297,48 @@ class Navigator {
     }
 }
 
+class About {
+    constructor(dict, parent_node) {
+        this.state = { disabled: true, html: null }
+        this.dict = dict
+        this.parent_node = parent_node
+    }
+
+    set disabled(value) {
+        if (this.state.disabled === value) return
+
+        if (value) {
+            this.state.disabled = true
+            this.render()
+        } else {
+            if (this.state.html) {
+                this.state.disabled = false
+                this.render()
+            } else {
+                fetch_text(this.dict.path + '/about.html').then( r => {
+                    this.state.html = r
+                    this.state.disabled = false
+                    this.render()
+                })
+            }
+        }
+    }
+
+    render() {
+        let op = this.state.disabled ? 'add' : 'remove'
+        this.parent_node.classList[op]('hidden')
+        if (!this.state.html) return
+
+        let str = (template, obj) => {
+            return template.replace(/\$\{(\w+)\}/g, (match, key) =>
+                (key in obj) ? obj[key] : ''
+            )
+        }
+
+        this.parent_node.innerHTML = str(this.state.html, this.dict)
+    }
+}
+
 class Form {
     constructor(dicts, node) {
         this.dicts = dicts
@@ -389,6 +431,7 @@ class App {
         this.gui.ges.render_from = idx
         this.gui.form.render_from = idx
         this.gui.nav.render()
+        this.gui.about.disabled = true
         this.gui.form.state_to_url()
     }
 
@@ -424,6 +467,9 @@ class App {
             this.gui.status.message = e
             indices = []
         }
+
+        this.gui.about.disabled = !(this.gui.form.query.trim() === ''
+                                    && this.gui.form.render_from === 0)
 
         this.gui.index.list = indices
         this.gui.index.highlight_from = this.gui.form.render_from
@@ -525,6 +571,7 @@ async function main() {
     gui.index =  new Index(dict, document.querySelector('#index'))
     gui.ges = new Glossentries(dict, document.querySelector('main'))
     gui.nav = new Navigator(gui.ges, document.querySelector('nav'))
+    gui.about = new About(dict, document.querySelector('#about'))
 
     let app = new App(dict, gui)
     app.search(false)

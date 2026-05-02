@@ -132,6 +132,11 @@ nav {
   button { width: 6em; }
 }
 
+#about {
+  margin: 1em 0;
+  border-bottom: 1px solid;
+}
+
 #logo {
   height: 2rem;
   display: flex;
