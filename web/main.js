@@ -150,6 +150,7 @@ class Index {
         this.state = {
             list: [],
             highlight_from: 0,
+            scroll_into_view: true
         }
         this.dict = dict
         this.parent_node = parent_node
@@ -210,7 +211,9 @@ class Index {
             if (!a[i]) break
             a[i].classList.add('highlighted')
         }
-        a[start]?.scrollIntoView({block: "center", container: "nearest"})
+        if (this.state.scroll_into_view)
+            a[start]?.scrollIntoView({block: "center", container: "nearest"})
+        this.state.scroll_into_view = true
     }
 }
 
@@ -427,6 +430,7 @@ class App {
 
         let anchors = Array.from(a.parentElement.children)
         let idx = anchors.indexOf(a)
+        this.gui.index.state.scroll_into_view = evt?.detail?.scroll_into_view
         this.gui.index.highlight_from = idx
         this.gui.ges.render_from = idx
         this.gui.form.render_from = idx
@@ -442,7 +446,10 @@ class App {
         let index_anchors = this.gui.index.parent_node.children
         let idx = render_from + step
         if (idx < 0) idx = 0
-        index_anchors[idx].click()
+        index_anchors[idx].dispatchEvent(new CustomEvent('click', {
+            bubbles: true,
+            detail: { scroll_into_view: true }
+        }))
     }
 
     ges_onclick(evt) {
