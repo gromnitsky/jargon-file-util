@@ -120,8 +120,8 @@ class Glossentries {
 
     set render_from(value) {
         value = Number(value)
-        if (value < 0) value = 0
         if (value >= this.state.list.length) value = this.state.list.length-1
+        if (value < 0) value = 0
         if (this.state.render_from !== value) {
             this.state.render_from = value
             this.render_later()
@@ -175,8 +175,8 @@ class Index {
 
     set highlight_from(value) {
         value = Number(value)
-        if (value < 0) value = 0
         if (value >= this.state.list.length) value = this.state.list.length-1
+        if (value < 0) value = 0
         if (this.state.highlight_from !== value) {
             this.state.highlight_from = value
             this.highlight_later()
