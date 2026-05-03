@@ -134,8 +134,8 @@ nav {
 }
 
 #about {
-  margin: 1em 0;
-  border-bottom: 1px solid;
+  margin: 1em 0 2em 0;
+  border-bottom: 1px dotted;
 }
 
 #logo {

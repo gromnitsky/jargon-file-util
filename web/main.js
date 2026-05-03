@@ -300,43 +300,40 @@ class Navigator {
 
 class About {
     constructor(dict, parent_node) {
-        this.state = { disabled: true, html: null }
+        this.state = { disabled: true }
         this.dict = dict
         this.parent_node = parent_node
+        this.fetch_abort_ctrl = null
     }
 
     set disabled(value) {
-        if (this.state.disabled === value) return
-
-        if (value) {
-            this.state.disabled = true
+        if (this.state.disabled !== value) {
+            this.state.disabled = value
             this.render()
-        } else {
-            if (this.state.html) {
-                this.state.disabled = false
-                this.render()
-            } else {
-                fetch_text(this.dict.path + '/about.html').then( r => {
-                    this.state.html = r
-                    this.state.disabled = false
-                    this.render()
-                })
-            }
         }
+    }
+
+    static str(template, obj) {
+        return template.replace(/\$\{(\w+)\}/g, (match, key) =>
+            (key in obj) ? obj[key] : ''
+        )
     }
 
     render() {
         let op = this.state.disabled ? 'add' : 'remove'
         this.parent_node.classList[op]('hidden')
-        if (!this.state.html) return
+        if (this.state.disabled) return
 
-        let str = (template, obj) => {
-            return template.replace(/\$\{(\w+)\}/g, (match, key) =>
-                (key in obj) ? obj[key] : ''
-            )
-        }
-
-        this.parent_node.innerHTML = str(this.state.html, this.dict)
+        this.fetch_abort_ctrl?.abort()
+        this.fetch_abort_ctrl = new AbortController()
+        this.parent_node.innerText = `Loading about page...`
+        fetch_text(this.dict.path + '/about.html',
+                   {signal: this.fetch_abort_ctrl.signal})
+            .then( html => {
+                this.parent_node.innerHTML = About.str(html, this.dict)
+            }).catch( () => {
+                this.disabled = true
+            }).finally( () => delete this.fetch_abort_ctrl)
     }
 }
 
