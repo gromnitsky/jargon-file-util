@@ -109,9 +109,7 @@ class Glossentries {
     }
 
     set list(value) {
-        let a = JSON.stringify(this.state.list)
-        let b = JSON.stringify(value)
-        if (a !== b) {
+        if (!arrays_eq(this.state.list, value)) {
             this.state.list = value
             this.state.render_from = 0
             this.render_later()
@@ -145,6 +143,12 @@ class Glossentries {
     }
 }
 
+function arrays_eq(a, b) {
+    if (a.length !== b.length) return false
+    for (let i=0; i<a.length; ++i) { if (a[i] !== b[i]) return false }
+    return true
+}
+
 class Index {
     constructor(dict, parent_node) {
         this.state = {
@@ -160,18 +164,11 @@ class Index {
     }
 
     set list(value) {
-        let upd = () => {
+        if (!arrays_eq(this.state.list, value)) {
             this.state.list = value
             this.state.highlight_from = 0
             this.render_later()
         }
-        if (this.state.list.length !== value.length) {
-            upd()
-            return
-        }
-        let a = JSON.stringify(this.state.list)
-        let b = JSON.stringify(value)
-        if (a !== b) upd()
     }
 
     set highlight_from(value) {
@@ -364,7 +361,7 @@ class Form {
         u.searchParams.set('render_from', this.render_from)
         u.searchParams.set('dict', this.dict)
         window.history.pushState({dict: this.dict}, '', u.toString())
-        let s = this.query ? `:: ${this.query} :: ${this.render_from}` : ''
+        let s = this.query ? ` :: ${this.query} :: ${this.render_from}` : ''
         document.title = `${this.dict}${s}`
     }
 
