@@ -354,13 +354,14 @@ class Form {
         this.dict = params.get('dict')
     }
 
-    state_to_url() {
+    state_to_url(history_op = 'pushState') {
         let u = new URL(location.href)
         u.searchParams.set('q', this.query)
         u.searchParams.set('t', this.type)
         u.searchParams.set('render_from', this.render_from)
         u.searchParams.set('dict', this.dict)
-        window.history.pushState({dict: this.dict}, '', u.toString())
+        let state = Object.fromEntries(u.searchParams)
+        window.history[history_op](state, '', u.toString())
         let s = this.query ? ` :: ${this.query} :: ${this.render_from}` : ''
         document.title = `${this.dict}${s}`
     }
@@ -461,7 +462,7 @@ class App {
         this.search()
     }
 
-    search(save_state_to_url = true) {
+    search(history_op = 'pushState') {
         let indices; try {
             indices = search(this.dict, this.gui.form.query, this.gui.form.type)
             this.gui.status.type = 'info'
@@ -481,7 +482,7 @@ class App {
         this.gui.ges.render_from = this.gui.form.render_from
         this.gui.nav.render()
 
-        if (save_state_to_url) this.gui.form.state_to_url()
+        this.gui.form.state_to_url(history_op)
     }
 
     async ontype() {
@@ -512,7 +513,7 @@ class App {
     }
 
     onpopstate(evt) {
-        if (evt.state.dict
+        if (evt?.state?.dict
             && evt.state.dict !== this.dict.name) return location.reload()
         this.gui.form.url_to_state()
         this.search()
@@ -580,7 +581,7 @@ async function main() {
     gui.about = new About(dict, document.querySelector('#about'))
 
     let app = new App(dict, gui)
-    app.search(false)
+    app.search('replaceState')
 }
 
 main()
