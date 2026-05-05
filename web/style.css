@@ -107,16 +107,12 @@ form fieldset {
     align-items: center;
     justify-content: space-between;
     height: 2rem;
-
-    select { height: 1.4rem; }
   }
 
   div:nth-child(2) {
     margin-top: var(--gap);
     display: flex;
     gap: var(--gap);
-
-    > * { height: 1.4rem; }
 
     input[type="search"] {
       width: 100%;
