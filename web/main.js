@@ -361,7 +361,8 @@ class Form {
         u.searchParams.set('render_from', this.render_from)
         u.searchParams.set('dict', this.dict)
         let state = Object.fromEntries(u.searchParams)
-        window.history[history_op](state, '', u.toString())
+        let hop = window.history[history_op]
+        if (hop) hop.call(window.history, state, '', u.toString())
         let s = this.query ? ` :: ${this.query} :: ${this.render_from}` : ''
         document.title = `${this.dict}${s}`
     }
@@ -516,7 +517,7 @@ class App {
         if (evt?.state?.dict
             && evt.state.dict !== this.dict.name) return location.reload()
         this.gui.form.url_to_state()
-        this.search()
+        this.search('do not update url')
     }
 
     onsubmit(evt) {
